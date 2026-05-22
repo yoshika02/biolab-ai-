@@ -1,0 +1,12 @@
+name = "biolab-backend"
+main = "index.js"
+compatibility_date = "2025-11-08"
+
+# Replace with your Cloudflare account ID
+account_id = "a3e7c133257c503fab581ae94416d591"
+
+# D1 database binding
+[[d1_databases]]
+binding = "biolab_db"
+database_name = "biolab-db"
+database_id = "368913a3-0003-4431-b19c-75c28655d08b"
