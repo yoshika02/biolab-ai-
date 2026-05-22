@@ -8,17 +8,23 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
     try {
-        const { name, email, department, institution, role, inviteCode, password } = await request.json();
-        const normalizedRole = (typeof role === "string" ? role.toLowerCase() : "researcher") as "researcher" | "lab_head" | "admin";
+        const { name, email, phone, department, institution, role, password } = await request.json();
+        const normalizedRole = typeof role === "string" ? role.toLowerCase() : "student";
 
-        // Validate role values
-        if (!["researcher", "lab_head", "admin"].includes(normalizedRole)) {
-            return NextResponse.json({ error: "Invalid role selected." }, { status: 400 });
+        if (typeof name !== "string" || !/^[A-Za-z ]+$/.test(name.trim())) {
+            return NextResponse.json({ error: "Name can contain alphabets and spaces only." }, { status: 400 });
         }
 
-        // Validate invite code for admin/lab head roles
-        if ((normalizedRole === "admin" || normalizedRole === "lab_head") && inviteCode !== process.env.ADMIN_INVITE_CODE) {
-            return NextResponse.json({ error: "Invalid invite code." }, { status: 401 });
+        if (typeof email !== "string" || !email.includes("@")) {
+            return NextResponse.json({ error: "Email must include @." }, { status: 400 });
+        }
+
+        if (typeof phone !== "string" || phone.trim().length < 7) {
+            return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
+        }
+
+        if (!["student", "researcher", "lab_assistant", "professor"].includes(normalizedRole)) {
+            return NextResponse.json({ error: "Invalid role selected." }, { status: 400 });
         }
 
         const db = await getDb();
@@ -33,8 +39,8 @@ export async function POST(request: NextRequest) {
         const user = { id: crypto.randomUUID(), email, role: normalizedRole };
         const passwordHash = await hashPassword(password);
         await db.prepare(
-            "INSERT INTO users (id, name, email, password_hash, department, institution, role) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        ).bind(user.id, name, email, passwordHash, department ?? null, institution ?? null, normalizedRole).run();
+            "INSERT INTO users (id, name, email, phone, password_hash, department, institution, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        ).bind(user.id, name.trim(), email, phone.trim(), passwordHash, department ?? null, institution ?? null, normalizedRole).run();
 
         const payload: TokenPayload = { userId: user.id, email: user.email, role: user.role };
         const accessToken = await issueAccessToken(payload);
