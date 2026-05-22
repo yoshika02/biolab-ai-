@@ -6,78 +6,13 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { engineeringDepartments, institutions, registerRoles } from "@/lib/auth-options";
 
 function passwordStrength(password: string) {
     if (password.length < 6) return "Weak";
     if (password.length < 10) return "Fair";
     return "Strong";
 }
-
-const departments = [
-    "Computer Science and Engineering",
-    "Information Technology",
-    "Artificial Intelligence and Data Science",
-    "Artificial Intelligence and Machine Learning",
-    "Electronics and Communication Engineering",
-    "Electrical Engineering",
-    "Electrical and Electronics Engineering",
-    "Mechanical Engineering",
-    "Civil Engineering",
-    "Chemical Engineering",
-    "Biotechnology",
-    "Biomedical Engineering",
-    "Instrumentation Engineering",
-    "Industrial Engineering",
-    "Production Engineering",
-    "Metallurgical and Materials Engineering",
-    "Aerospace Engineering",
-    "Automobile Engineering",
-    "Mechatronics Engineering",
-    "Environmental Engineering",
-];
-
-const institutions = [
-    "IIT Bombay",
-    "IIT Delhi",
-    "IIT Madras",
-    "IIT Kanpur",
-    "IIT Kharagpur",
-    "IIT Roorkee",
-    "IIT Guwahati",
-    "IIT Hyderabad",
-    "IIT Indore",
-    "IIT BHU Varanasi",
-    "NIT Trichy",
-    "NIT Surathkal",
-    "NIT Warangal",
-    "NIT Calicut",
-    "NIT Rourkela",
-    "NIT Kurukshetra",
-    "NIT Durgapur",
-    "NIT Silchar",
-    "NIT Hamirpur",
-    "MNIT Jaipur",
-    "MANIT Bhopal",
-    "SVNIT Surat",
-    "IIIT Hyderabad",
-    "IIIT Bangalore",
-    "IIIT Delhi",
-    "ABV-IIITM Gwalior",
-    "IIIT Allahabad",
-    "IIITDM Jabalpur",
-    "IIIT Sri City",
-    "IIIT Guwahati",
-    "BITS Pilani",
-    "VIT Vellore",
-    "SRM Institute of Science and Technology",
-    "Manipal Institute of Technology",
-    "Thapar Institute of Engineering and Technology",
-    "Amity University",
-    "Shiv Nadar University",
-    "Chandigarh University",
-    "Lovely Professional University",
-    "PES University",
-];
 
 export default function RegisterPage() {
     const [name, setName] = useState("");
@@ -186,9 +121,9 @@ export default function RegisterPage() {
                     <div className="grid gap-5 md:grid-cols-2">
                         <div>
                             <label className="mb-2 block text-sm font-medium text-slate-700">Department</label>
-                            <select value={department} onChange={(event) => setDepartment(event.target.value)} required className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                        <select value={department} onChange={(event) => setDepartment(event.target.value)} required className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                                 <option value="">Select department</option>
-                                {departments.map((item) => (
+                                {engineeringDepartments.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                 ))}
                             </select>
@@ -206,10 +141,9 @@ export default function RegisterPage() {
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">Role</label>
                         <select value={role} onChange={(event) => setRole(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                            <option value="student">Student</option>
-                            <option value="researcher">Researcher</option>
-                            <option value="lab_assistant">Lab Assistant</option>
-                            <option value="professor">Professor</option>
+                            {registerRoles.map((item) => (
+                                <option key={item.value} value={item.value}>{item.label}</option>
+                            ))}
                         </select>
                     </div>
                     <div>

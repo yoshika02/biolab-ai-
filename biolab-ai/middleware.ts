@@ -29,9 +29,6 @@ export async function middleware(request: NextRequest) {
 
     try {
         const payload = await verifyAccessToken(accessToken);
-        if (pathname.startsWith("/dashboard/admin") && payload.role !== "admin") {
-            return new NextResponse("Forbidden", { status: 403 });
-        }
         return NextResponse.next();
     } catch {
         const loginUrl = new URL("/login", request.url);

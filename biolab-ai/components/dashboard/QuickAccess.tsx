@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, BookOpen, Boxes, FlaskRound, Droplet, ShieldCheck } from "lucide-react";
+import { FileText, BookOpen, Boxes, FlaskRound, Droplet, ShieldCheck, BarChart3, User } from "lucide-react";
 
 const items = [
     { label: "Protocol", href: "/dashboard/protocol", icon: FileText, description: "Create and manage lab protocols." },
@@ -8,6 +8,8 @@ const items = [
     { label: "Experiments", href: "/dashboard/experiments", icon: FlaskRound, description: "Monitor current experiments." },
     { label: "Primers", href: "/dashboard/primers", icon: Droplet, description: "Design and store primer sets." },
     { label: "Safety", href: "/dashboard/safety", icon: ShieldCheck, description: "View safety alerts and incidents." },
+    { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, description: "Capture weekly trends and reports." },
+    { label: "Profile", href: "/dashboard/profile", icon: User, description: "Keep your affiliation details current." },
 ];
 
 export function QuickAccess() {

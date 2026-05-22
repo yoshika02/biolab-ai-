@@ -10,7 +10,6 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
-    const [resetMessage, setResetMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(event?: React.MouseEvent<HTMLButtonElement> | React.FormEvent<HTMLFormElement>) {
@@ -57,15 +56,6 @@ export default function LoginPage() {
         }
     }
 
-    function handleForgotPassword() {
-        setError(null);
-        if (!email.includes("@")) {
-            setResetMessage("Enter your registered email first.");
-            return;
-        }
-        setResetMessage("Password reset support is coming soon. Please contact your lab coordinator for now.");
-    }
-
     return (
         <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-16">
             <div className="w-full rounded-3xl border border-slate-200 bg-white p-10 shadow-xl sm:p-12">
@@ -83,12 +73,11 @@ export default function LoginPage() {
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
                         <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required placeholder="••••••••" />
-                        <button type="button" onClick={handleForgotPassword} className="mt-3 text-sm font-semibold text-teal-600 hover:text-teal-700">
+                        <Link href="/forgot-password" className="mt-3 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
                             Forgot password?
-                        </button>
+                        </Link>
                     </div>
                     {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-                    {resetMessage ? <p className="text-sm text-slate-500">{resetMessage}</p> : null}
                     <Button type="button" onClick={handleSubmit} disabled={loading} className="w-full">{loading ? "Signing in..." : "Sign in"}</Button>
                 </form>
 

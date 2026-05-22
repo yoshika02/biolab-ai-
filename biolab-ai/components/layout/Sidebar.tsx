@@ -52,6 +52,14 @@ export function Sidebar() {
         fetchUser();
     }, []);
 
+    async function handleLogout() {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+        } finally {
+            window.location.href = "/login";
+        }
+    }
+
     return (
         <aside className="fixed left-0 top-0 z-20 h-screen w-60 border-r border-slate-200 bg-slate-950 px-3 py-6 text-slate-100 sm:w-60">
             <div className="mb-10 flex items-center gap-3 px-3">
@@ -85,7 +93,7 @@ export function Sidebar() {
                         </div>
                     </div>
                 </div>
-                <button className="flex items-center justify-center gap-2 rounded-2xl bg-slate-800 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-700">
+                <button onClick={handleLogout} className="flex items-center justify-center gap-2 rounded-2xl bg-slate-800 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-700">
                     <LogOut className="h-4 w-4" />
                     Logout
                 </button>
