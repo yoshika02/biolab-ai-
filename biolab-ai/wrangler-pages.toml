@@ -1,0 +1,29 @@
+name = "biolab-ai-pages"
+type = "javascript"
+main = ".next/standalone/server.js"
+compatibility_date = "2026-05-23"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "a3e7c133257c503fab581ae94416d591"
+
+[env.production]
+routes = [
+  { pattern = "biolab.yoshika.com/*", zone_name = "yoshika.com" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "biolab-db"
+database_id = "368913a3-0003-4431-b19c-75c28655d08b"
+
+[env.production.d1_databases]
+binding = "DB"
+database_name = "biolab-db"
+database_id = "368913a3-0003-4431-b19c-75c28655d08b"
+
+[build]
+command = "npm run build"
+cwd = "./"
+
+[build.upload]
+format = "modules"
