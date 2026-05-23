@@ -1,0 +1,35 @@
+name: Run D1 Database Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/schema.sql'
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  migrate:
+    name: Apply D1 Schema Migration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install wrangler --save-dev
+
+      - name: Run D1 Migration
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend
+          command: d1 execute biolab-db --remote --file=schema.sql
