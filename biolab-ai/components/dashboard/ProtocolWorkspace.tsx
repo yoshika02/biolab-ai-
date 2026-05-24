@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ListChecks, Plus, Sparkles, TestTube2, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type DragEvent } from "react";
+import {
+    FileText, Plus, Sparkles, Trash2, Upload, X, CheckCircle2,
+    ListChecks, TestTube2, FileUp, ChevronRight, Loader2
+} from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +18,7 @@ const suggestedQuestions = [
     "Give me the full step-by-step breakdown",
     "List total reagents required",
     "Summarize this protocol",
+    "What safety precautions are needed?",
 ];
 
 function readProtocols(): StoredProtocol[] {
@@ -22,22 +26,32 @@ function readProtocols(): StoredProtocol[] {
     try {
         const parsed = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
         if (!Array.isArray(parsed)) return [];
-        return parsed
-            .filter((protocol) => protocol?.name)
-            .map((protocol) => ({
-                id: protocol.id || crypto.randomUUID(),
-                createdAt: protocol.createdAt || new Date().toISOString(),
-                status: protocol.status || "Draft",
-                name: protocol.name,
-                sampleType: protocol.sampleType || "",
-                objective: protocol.objective || "",
-                description: protocol.description || protocol.notes || "",
-                steps: Array.isArray(protocol.steps) ? protocol.steps : [],
-                reagents: Array.isArray(protocol.reagents) ? protocol.reagents : [],
-            }));
-    } catch {
-        return [];
-    }
+        return parsed.filter((p) => p?.name).map((p) => ({
+            id: p.id || crypto.randomUUID(),
+            createdAt: p.createdAt || new Date().toISOString(),
+            status: p.status || "Draft",
+            name: p.name,
+            sampleType: p.sampleType || "",
+            objective: p.objective || "",
+            description: p.description || p.notes || "",
+            steps: Array.isArray(p.steps) ? p.steps : [],
+            reagents: Array.isArray(p.reagents) ? p.reagents : [],
+        }));
+    } catch { return []; }
+}
+
+async function extractTextFromFile(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            // Basic extraction: strip null bytes and non-printable chars for PDFs
+            const cleaned = text.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s{3,}/g, "\n").trim();
+            resolve(cleaned.slice(0, 8000)); // limit context
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
 }
 
 export function ProtocolWorkspace() {
@@ -50,6 +64,15 @@ export function ProtocolWorkspace() {
     const [error, setError] = useState("");
     const [ready, setReady] = useState(false);
     const [draft, setDraft] = useState({ name: "", sampleType: "", objective: "", description: "" });
+    const [showForm, setShowForm] = useState(false);
+
+    // PDF Upload state
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [uploadedText, setUploadedText] = useState("");
+    const [uploadLoading, setUploadLoading] = useState(false);
+    const [uploadError, setUploadError] = useState("");
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const saved = readProtocols();
@@ -64,15 +87,14 @@ export function ProtocolWorkspace() {
     }, [protocols, ready]);
 
     const selectedProtocol = useMemo(
-        () => protocols.find((protocol) => protocol.id === selectedId) || null,
+        () => protocols.find((p) => p.id === selectedId) || null,
         [protocols, selectedId]
     );
 
     function createProtocol(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (!draft.name.trim()) return;
-
-        const protocol: StoredProtocol = {
+        const p: StoredProtocol = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             status: "Draft",
@@ -83,50 +105,84 @@ export function ProtocolWorkspace() {
             steps: [],
             reagents: [],
         };
-
-        setProtocols((current) => [protocol, ...current]);
-        setSelectedId(protocol.id);
+        setProtocols((cur) => [p, ...cur]);
+        setSelectedId(p.id);
         setDraft({ name: "", sampleType: "", objective: "", description: "" });
+        setShowForm(false);
     }
 
-    function updateSelected(nextProtocol: StoredProtocol) {
-        setProtocols((current) => current.map((protocol) => (protocol.id === nextProtocol.id ? nextProtocol : protocol)));
+    function updateSelected(next: StoredProtocol) {
+        setProtocols((cur) => cur.map((p) => (p.id === next.id ? next : p)));
     }
 
-    function addStep() {
-        if (!selectedProtocol) return;
-        const steps = selectedProtocol.steps || [];
-        updateSelected({
-            ...selectedProtocol,
-            steps: [...steps, { order_num: steps.length + 1, instruction: "", duration_min: undefined, notes: "" }],
-        });
+    function deleteProtocol(id: string) {
+        setProtocols((cur) => cur.filter((p) => p.id !== id));
+        setSelectedId((cur) => (cur === id ? protocols.find((p) => p.id !== id)?.id || "" : cur));
     }
 
-    function addReagent() {
-        if (!selectedProtocol) return;
-        updateSelected({
-            ...selectedProtocol,
-            reagents: [...(selectedProtocol.reagents || []), { name: "", quantity: undefined, unit: "ml", supplier: "", notes: "" }],
-        });
+    async function processUploadedFile(file: File) {
+        setUploadLoading(true);
+        setUploadError("");
+        setUploadedText("");
+        setUploadedFile(file);
+        try {
+            const text = await extractTextFromFile(file);
+            if (!text || text.length < 30) throw new Error("Could not extract readable text. Try a plain-text PDF or .txt file.");
+            setUploadedText(text);
+            // Auto-create a protocol from the file
+            const p: StoredProtocol = {
+                id: crypto.randomUUID(),
+                createdAt: new Date().toISOString(),
+                status: "Draft",
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                sampleType: "",
+                objective: "Imported from document",
+                description: text.slice(0, 300),
+                steps: [],
+                reagents: [],
+            };
+            setProtocols((cur) => [p, ...cur]);
+            setSelectedId(p.id);
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : "Failed to read file.");
+        } finally {
+            setUploadLoading(false);
+        }
+    }
+
+    function handleFileDrop(event: DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragging(false);
+        const file = event.dataTransfer.files[0];
+        if (file) processUploadedFile(file);
+    }
+
+    function handleFileInput(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (file) processUploadedFile(file);
     }
 
     async function askAI(event?: FormEvent<HTMLFormElement>, forcedQuestion?: string) {
         event?.preventDefault();
         const question = forcedQuestion || query;
-        if (!selectedProtocol || !question.trim()) return;
-
+        if (!question.trim()) return;
         setLoading(true);
         setError("");
         setAiResponse(null);
 
+        // Build the protocol context — use uploaded text if available
+        const contextProtocol: Protocol = selectedProtocol
+            ? { ...selectedProtocol, description: uploadedText || selectedProtocol.description }
+            : { name: uploadedFile?.name || "Uploaded Document", description: uploadedText };
+
         try {
-            const response = await fetch("/api/protocol/query", {
+            const res = await fetch("/api/protocol/query", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ protocol: selectedProtocol, query: question, queryType }),
+                body: JSON.stringify({ protocol: contextProtocol, query: question, queryType }),
             });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "Failed to generate response");
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "Failed to generate response");
             setAiResponse(result);
             setQuery(question);
         } catch (err) {
@@ -137,225 +193,300 @@ export function ProtocolWorkspace() {
     }
 
     return (
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
+            {/* ── Left sidebar ── */}
             <aside className="space-y-4">
-                <Card className="space-y-4 rounded-lg">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">M1 Protocol Assistant</p>
-                        <h2 className="mt-1 text-lg font-semibold text-slate-950">Protocol Library</h2>
+                {/* PDF Upload Zone */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                    <div className="flex items-center gap-2">
+                        <FileUp className="h-4 w-4 text-teal-600" />
+                        <p className="text-sm font-semibold text-slate-800">Import Document</p>
                     </div>
-                    <form onSubmit={createProtocol} className="space-y-3">
-                        <Input placeholder="Protocol name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} required />
-                        <Input placeholder="Sample type" value={draft.sampleType} onChange={(event) => setDraft({ ...draft, sampleType: event.target.value })} />
-                        <Input placeholder="Objective" value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} />
-                        <textarea
-                            className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                            placeholder="Short SOP description"
-                            value={draft.description}
-                            onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                        />
-                        <Button type="submit" className="w-full gap-2"><Plus className="h-4 w-4" />New protocol</Button>
-                    </form>
-                </Card>
-
-                <div className="space-y-2">
-                    {protocols.map((protocol) => (
-                        <button
-                            key={protocol.id}
-                            onClick={() => setSelectedId(protocol.id)}
-                            className={`w-full rounded-lg border p-4 text-left transition ${selectedId === protocol.id ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="font-semibold text-slate-950">{protocol.name}</p>
-                                    <p className="mt-1 text-sm text-slate-500">{protocol.sampleType || "No sample type"}</p>
-                                </div>
-                                <Badge variant={protocol.status === "Ready" ? "success" : "default"}>{protocol.status}</Badge>
+                    <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={handleFileDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                            isDragging ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-teal-400 hover:bg-teal-50/50"
+                        }`}
+                    >
+                        <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.doc,.docx" className="hidden" onChange={handleFileInput} />
+                        {uploadLoading ? (
+                            <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
+                                <p className="text-xs text-slate-500">Reading document…</p>
                             </div>
+                        ) : uploadedFile && uploadedText ? (
+                            <div className="flex flex-col items-center gap-2">
+                                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                                <p className="text-xs font-semibold text-slate-700">{uploadedFile.name}</p>
+                                <p className="text-xs text-slate-400">{uploadedText.length.toLocaleString()} chars extracted</p>
+                                <button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setUploadedText(""); }} className="text-xs text-rose-500 hover:underline flex items-center gap-1">
+                                    <X className="h-3 w-3" /> Remove
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2">
+                                <Upload className="h-8 w-8 text-slate-400" />
+                                <p className="text-xs font-medium text-slate-600">Drag & drop or click</p>
+                                <p className="text-xs text-slate-400">PDF, TXT, MD, CSV, DOC</p>
+                            </div>
+                        )}
+                    </div>
+                    {uploadError && <p className="text-xs text-rose-600 bg-rose-50 rounded-xl px-3 py-2">{uploadError}</p>}
+                    {uploadedText && (
+                        <p className="text-xs text-slate-500 italic line-clamp-3">"{uploadedText.slice(0, 150)}…"</p>
+                    )}
+                </div>
+
+                {/* Protocol Library */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-slate-800">Protocol Library</p>
+                        <button onClick={() => setShowForm((v) => !v)} className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-500 text-white hover:bg-teal-600 transition">
+                            <Plus className="h-4 w-4" />
                         </button>
-                    ))}
+                    </div>
+
+                    {showForm && (
+                        <form onSubmit={createProtocol} className="space-y-2 border-t border-slate-100 pt-3">
+                            <Input placeholder="Protocol name *" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required />
+                            <Input placeholder="Sample type" value={draft.sampleType} onChange={(e) => setDraft({ ...draft, sampleType: e.target.value })} />
+                            <Input placeholder="Objective" value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} />
+                            <textarea
+                                className="min-h-16 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                                placeholder="Short SOP description"
+                                value={draft.description}
+                                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                            />
+                            <div className="flex gap-2">
+                                <Button type="submit" className="flex-1 gap-2 text-sm"><Plus className="h-4 w-4" />Add</Button>
+                                <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="text-sm">Cancel</Button>
+                            </div>
+                        </form>
+                    )}
+
+                    <div className="space-y-2">
+                        {protocols.length === 0 && (
+                            <p className="text-xs text-slate-400 text-center py-4">No protocols yet. Upload a document or create one above.</p>
+                        )}
+                        {protocols.map((p) => (
+                            <button
+                                key={p.id}
+                                onClick={() => setSelectedId(p.id)}
+                                className={`group w-full rounded-2xl border p-3 text-left transition ${selectedId === p.id ? "border-teal-400 bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="truncate text-sm font-semibold text-slate-900">{p.name}</p>
+                                        <p className="truncate text-xs text-slate-500">{p.sampleType || "No sample type"}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Badge variant={p.status === "Ready" ? "success" : "default"}>{p.status}</Badge>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); deleteProtocol(p.id); }} className="opacity-0 group-hover:opacity-100 rounded-full p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
+                                            <Trash2 className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </aside>
 
-            {selectedProtocol ? (
-                <main className="space-y-6">
-                    <Card className="space-y-5 rounded-lg">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Selected SOP</p>
-                                <h2 className="mt-1 text-2xl font-semibold text-slate-950">{selectedProtocol.name}</h2>
-                                <p className="mt-2 max-w-3xl text-sm text-slate-600">{selectedProtocol.description || selectedProtocol.objective || "Add steps and reagents to make this protocol query-ready."}</p>
-                            </div>
-                            <div className="flex gap-2">
+            {/* ── Main content ── */}
+            <main className="space-y-6">
+                {/* AI Query Panel */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600">
+                            <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-teal-600">M1 · Protocol Assistant</p>
+                            <h2 className="text-lg font-bold text-slate-900">
+                                {selectedProtocol ? selectedProtocol.name : uploadedFile ? uploadedFile.name : "AI Protocol Analyzer"}
+                            </h2>
+                        </div>
+                        {selectedProtocol && (
+                            <div className="ml-auto flex gap-2">
                                 <Badge>{selectedProtocol.steps?.length || 0} steps</Badge>
                                 <Badge>{selectedProtocol.reagents?.length || 0} reagents</Badge>
                             </div>
-                        </div>
-
-                        <form onSubmit={askAI} className="grid gap-3 lg:grid-cols-[180px_1fr_auto]">
-                            <select
-                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                                value={queryType}
-                                onChange={(event) => setQueryType(event.target.value as ProtocolQueryType)}
-                            >
-                                <option value="auto">Auto detect</option>
-                                <option value="steps">Steps breakdown</option>
-                                <option value="reagents">Total reagents</option>
-                                <option value="instructions">Instructions</option>
-                                <option value="summary">Summary</option>
-                            </select>
-                            <Input placeholder="Ask for steps, reagents, instructions, or a summary" value={query} onChange={(event) => setQuery(event.target.value)} />
-                            <Button type="submit" disabled={loading} className="gap-2"><Sparkles className="h-4 w-4" />{loading ? "Generating" : "Ask"}</Button>
-                        </form>
-
-                        <div className="flex flex-wrap gap-2">
-                            {suggestedQuestions.map((question) => (
-                                <button key={question} type="button" onClick={() => askAI(undefined, question)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">
-                                    {question}
-                                </button>
-                            ))}
-                        </div>
-
-                        {error && <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-                        {aiResponse && (
-                            <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-5">
-                                <div className="mb-3 flex items-center gap-2">
-                                    {aiResponse.type === "reagents" ? <TestTube2 className="h-5 w-5 text-teal-700" /> : <ListChecks className="h-5 w-5 text-teal-700" />}
-                                    <Badge variant="success">{aiResponse.type}</Badge>
-                                </div>
-                                <pre className="whitespace-pre-wrap font-sans text-sm leading-6 text-slate-800">{aiResponse.content}</pre>
-                            </div>
                         )}
-                    </Card>
+                    </div>
 
-                    <section className="grid gap-6 xl:grid-cols-2">
-                        <ProtocolSteps protocol={selectedProtocol} onChange={updateSelected} onAdd={addStep} />
-                        <ProtocolReagents protocol={selectedProtocol} onChange={updateSelected} onAdd={addReagent} />
-                    </section>
-                </main>
-            ) : (
-                <Card className="rounded-lg text-center text-slate-500">Create a protocol to start building steps, reagents, and AI answers.</Card>
-            )}
+                    {!selectedProtocol && !uploadedText && (
+                        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center space-y-2">
+                            <FileText className="h-10 w-10 text-slate-300 mx-auto" />
+                            <p className="text-sm font-medium text-slate-500">Upload a document or select a protocol to start querying</p>
+                            <p className="text-xs text-slate-400">Supports PDF, TXT, DOC, and manually created SOPs</p>
+                        </div>
+                    )}
+
+                    {(selectedProtocol || uploadedText) && (
+                        <>
+                            <form onSubmit={askAI} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
+                                <select
+                                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500"
+                                    value={queryType}
+                                    onChange={(e) => setQueryType(e.target.value as ProtocolQueryType)}
+                                >
+                                    <option value="auto">Auto detect</option>
+                                    <option value="steps">Steps breakdown</option>
+                                    <option value="reagents">Total reagents</option>
+                                    <option value="instructions">Instructions</option>
+                                    <option value="summary">Summary</option>
+                                </select>
+                                <Input
+                                    placeholder={uploadedText ? "Ask anything about the uploaded document…" : "Ask for steps, reagents, instructions, or a summary"}
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                />
+                                <Button type="submit" disabled={loading} className="gap-2 whitespace-nowrap">
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                    {loading ? "Analyzing…" : "Ask AI"}
+                                </Button>
+                            </form>
+
+                            <div className="flex flex-wrap gap-2">
+                                {suggestedQuestions.map((q) => (
+                                    <button
+                                        key={q}
+                                        type="button"
+                                        onClick={() => askAI(undefined, q)}
+                                        className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
+                                    >
+                                        <ChevronRight className="h-3 w-3" />{q}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {error && <div className="rounded-xl bg-rose-50 border border-rose-100 p-4 text-sm text-rose-700">{error}</div>}
+
+                            {aiResponse && (
+                                <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        {aiResponse.type === "reagents"
+                                            ? <TestTube2 className="h-5 w-5 text-teal-600" />
+                                            : <ListChecks className="h-5 w-5 text-teal-600" />}
+                                        <Badge variant="success">{aiResponse.type}</Badge>
+                                        <span className="text-xs text-slate-400 ml-auto">AI Generated</span>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-slate-800">{aiResponse.content}</pre>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+
+                {/* Steps & Reagents */}
+                {selectedProtocol && (
+                    <div className="grid gap-6 xl:grid-cols-2">
+                        <ProtocolSteps protocol={selectedProtocol} onChange={updateSelected} />
+                        <ProtocolReagents protocol={selectedProtocol} onChange={updateSelected} />
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
 
-function ProtocolSteps({ protocol, onChange, onAdd }: { protocol: StoredProtocol; onChange: (protocol: StoredProtocol) => void; onAdd: () => void }) {
+function ProtocolSteps({ protocol, onChange }: { protocol: StoredProtocol; onChange: (p: StoredProtocol) => void }) {
     const steps = protocol.steps || [];
-
+    function addStep() {
+        onChange({ ...protocol, steps: [...steps, { order_num: steps.length + 1, instruction: "", duration_min: undefined, notes: "" }] });
+    }
     return (
-        <Card className="space-y-4 rounded-lg">
-            <div className="flex items-center justify-between gap-3">
-                <h3 className="font-semibold text-slate-950">Step Viewer</h3>
-                <Button type="button" variant="secondary" onClick={onAdd} className="gap-2"><Plus className="h-4 w-4" />Step</Button>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">Step Viewer</h3>
+                <Button type="button" variant="secondary" onClick={addStep} className="gap-2 text-sm"><Plus className="h-4 w-4" />Add Step</Button>
             </div>
             <div className="space-y-3">
-                {steps.map((step, index) => (
-                    <div key={index} className="grid gap-2 rounded-lg border border-slate-200 p-3">
+                {steps.map((step, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800">{index + 1}</span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{i + 1}</span>
                             <Input
                                 placeholder="Instruction"
                                 value={step.instruction}
-                                onChange={(event) => {
+                                onChange={(e) => {
                                     const next = [...steps];
-                                    next[index] = { ...step, order_num: index + 1, instruction: event.target.value };
+                                    next[i] = { ...step, instruction: e.target.value };
                                     onChange({ ...protocol, steps: next });
                                 }}
                             />
-                            <button type="button" className="rounded-full p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => onChange({ ...protocol, steps: steps.filter((_, stepIndex) => stepIndex !== index).map((item, stepIndex) => ({ ...item, order_num: stepIndex + 1 })) })}>
+                            <button type="button" onClick={() => onChange({ ...protocol, steps: steps.filter((_, j) => j !== i).map((s, j) => ({ ...s, order_num: j + 1 })) })} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            <Input
-                                type="number"
-                                placeholder="Minutes"
-                                value={step.duration_min ?? ""}
-                                onChange={(event) => {
-                                    const next = [...steps];
-                                    next[index] = { ...step, duration_min: event.target.value ? Number(event.target.value) : undefined };
-                                    onChange({ ...protocol, steps: next });
-                                }}
-                            />
-                            <Input
-                                placeholder="Notes or precautions"
-                                value={step.notes || ""}
-                                onChange={(event) => {
-                                    const next = [...steps];
-                                    next[index] = { ...step, notes: event.target.value };
-                                    onChange({ ...protocol, steps: next });
-                                }}
-                            />
+                        <div className="grid gap-2 sm:grid-cols-2 pl-9">
+                            <Input type="number" placeholder="Minutes" value={step.duration_min ?? ""} onChange={(e) => {
+                                const next = [...steps];
+                                next[i] = { ...step, duration_min: e.target.value ? Number(e.target.value) : undefined };
+                                onChange({ ...protocol, steps: next });
+                            }} />
+                            <Input placeholder="Notes / precautions" value={step.notes || ""} onChange={(e) => {
+                                const next = [...steps];
+                                next[i] = { ...step, notes: e.target.value };
+                                onChange({ ...protocol, steps: next });
+                            }} />
                         </div>
                     </div>
                 ))}
-                {!steps.length && <p className="text-sm text-slate-500">No steps saved yet.</p>}
+                {!steps.length && <p className="text-sm text-slate-400 text-center py-4">No steps yet. Add the first step above.</p>}
             </div>
-        </Card>
+        </div>
     );
 }
 
-function ProtocolReagents({ protocol, onChange, onAdd }: { protocol: StoredProtocol; onChange: (protocol: StoredProtocol) => void; onAdd: () => void }) {
+function ProtocolReagents({ protocol, onChange }: { protocol: StoredProtocol; onChange: (p: StoredProtocol) => void }) {
     const reagents = protocol.reagents || [];
-
+    function addReagent() {
+        onChange({ ...protocol, reagents: [...reagents, { name: "", quantity: undefined, unit: "ml", supplier: "", notes: "" }] });
+    }
     return (
-        <Card className="space-y-4 rounded-lg">
-            <div className="flex items-center justify-between gap-3">
-                <h3 className="font-semibold text-slate-950">Total Reagents</h3>
-                <Button type="button" variant="secondary" onClick={onAdd} className="gap-2"><Plus className="h-4 w-4" />Reagent</Button>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">Reagents</h3>
+                <Button type="button" variant="secondary" onClick={addReagent} className="gap-2 text-sm"><Plus className="h-4 w-4" />Add Reagent</Button>
             </div>
             <div className="space-y-3">
-                {reagents.map((reagent, index) => (
-                    <div key={index} className="grid gap-2 rounded-lg border border-slate-200 p-3">
+                {reagents.map((reagent, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                            <Input
-                                placeholder="Reagent name"
-                                value={reagent.name}
-                                onChange={(event) => {
-                                    const next = [...reagents];
-                                    next[index] = { ...reagent, name: event.target.value };
-                                    onChange({ ...protocol, reagents: next });
-                                }}
-                            />
-                            <button type="button" className="rounded-full p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => onChange({ ...protocol, reagents: reagents.filter((_, reagentIndex) => reagentIndex !== index) })}>
+                            <Input placeholder="Reagent name" value={reagent.name} onChange={(e) => {
+                                const next = [...reagents];
+                                next[i] = { ...reagent, name: e.target.value };
+                                onChange({ ...protocol, reagents: next });
+                            }} />
+                            <button type="button" onClick={() => onChange({ ...protocol, reagents: reagents.filter((_, j) => j !== i) })} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-3">
-                            <Input
-                                type="number"
-                                placeholder="Quantity"
-                                value={reagent.quantity ?? ""}
-                                onChange={(event) => {
-                                    const next = [...reagents];
-                                    next[index] = { ...reagent, quantity: event.target.value ? Number(event.target.value) : undefined };
-                                    onChange({ ...protocol, reagents: next });
-                                }}
-                            />
-                            <Input
-                                placeholder="Unit"
-                                value={reagent.unit || ""}
-                                onChange={(event) => {
-                                    const next = [...reagents];
-                                    next[index] = { ...reagent, unit: event.target.value };
-                                    onChange({ ...protocol, reagents: next });
-                                }}
-                            />
-                            <Input
-                                placeholder="Supplier"
-                                value={reagent.supplier || ""}
-                                onChange={(event) => {
-                                    const next = [...reagents];
-                                    next[index] = { ...reagent, supplier: event.target.value };
-                                    onChange({ ...protocol, reagents: next });
-                                }}
-                            />
+                            <Input type="number" placeholder="Quantity" value={reagent.quantity ?? ""} onChange={(e) => {
+                                const next = [...reagents];
+                                next[i] = { ...reagent, quantity: e.target.value ? Number(e.target.value) : undefined };
+                                onChange({ ...protocol, reagents: next });
+                            }} />
+                            <Input placeholder="Unit (ml, g…)" value={reagent.unit || ""} onChange={(e) => {
+                                const next = [...reagents];
+                                next[i] = { ...reagent, unit: e.target.value };
+                                onChange({ ...protocol, reagents: next });
+                            }} />
+                            <Input placeholder="Supplier" value={reagent.supplier || ""} onChange={(e) => {
+                                const next = [...reagents];
+                                next[i] = { ...reagent, supplier: e.target.value };
+                                onChange({ ...protocol, reagents: next });
+                            }} />
                         </div>
                     </div>
                 ))}
-                {!reagents.length && <p className="text-sm text-slate-500">No reagents saved yet.</p>}
+                {!reagents.length && <p className="text-sm text-slate-400 text-center py-4">No reagents yet. Add materials above.</p>}
             </div>
-        </Card>
+        </div>
     );
 }
