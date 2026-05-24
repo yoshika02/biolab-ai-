@@ -13,3 +13,6 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "biolab-db"
 database_id = "368913a3-0003-4431-b19c-75c28655d08b"
+
+[build]
+command = "cd biolab-ai && npm ci && npm run build:worker"
