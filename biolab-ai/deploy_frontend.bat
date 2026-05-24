@@ -61,7 +61,7 @@ echo.
 echo ==============================
 echo Building, exporting, and deploying …
 echo ==============================
-npm run build && npm run export && npx wrangler pages deploy ./out
+npm run deploy
 if errorlevel 1 (
     echo *** Deployment failed ***
 ) else (

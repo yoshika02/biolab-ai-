@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "export": "next export",
-    "pages:deploy": "npm run build && npm run export && npx wrangler pages deploy ./out",
+
+    "pages:deploy": "echo \"ERROR: Use npm run deploy instead! This project uses OpenNext for Workers, not Pages.\" && exit 1",
     "build:worker": "opennextjs-cloudflare build",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
