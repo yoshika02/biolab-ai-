@@ -1,5 +1,15 @@
-# DEPRECATED: Please delete this file.
-# The actual wrangler configuration is in the biolab-ai directory.
-# This Next.js app uses OpenNext to deploy as a Cloudflare Worker, NOT Cloudflare Pages.
-name = "biolab-ai-dummy"
-compatibility_date = "2024-09-01"
+name = "biolab-ai"
+main = "biolab-ai/.open-next/worker.js"
+compatibility_date = "2026-05-22"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "a3e7c133257c503fab581ae94416d591"
+
+[assets]
+directory = "biolab-ai/.open-next/assets"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "biolab-db"
+database_id = "368913a3-0003-4431-b19c-75c28655d08b"
