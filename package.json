@@ -1,0 +1,8 @@
+{
+  "name": "biolab-ai-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd biolab-ai && npm ci && npm run build:worker"
+  }
+}
