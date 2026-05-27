@@ -1,7 +1,5 @@
-import { ModuleWorkspace } from "@/components/dashboard/ModuleWorkspace";
-import { getWorkspaceConfig } from "@/lib/dashboard-workspaces";
+import { PapersWorkspace } from "@/components/dashboard/PapersWorkspace";
 
 export default function PapersPage() {
-    return <ModuleWorkspace config={getWorkspaceConfig("papers")} />;
+    return <PapersWorkspace />;
 }
-
