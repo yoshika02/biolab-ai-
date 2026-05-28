@@ -197,10 +197,10 @@ export function ProtocolWorkspace() {
             {/* ── Left sidebar ── */}
             <aside className="space-y-4">
                 {/* PDF Upload Zone */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5 space-y-3">
                     <div className="flex items-center gap-2">
-                        <FileUp className="h-4 w-4 text-teal-600" />
-                        <p className="text-sm font-semibold text-slate-800">Import Document</p>
+                        <FileUp className="h-4 w-4 text-teal-400" />
+                        <p className="text-sm font-semibold text-slate-200">Import Document</p>
                     </div>
                     <div
                         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -208,54 +208,54 @@ export function ProtocolWorkspace() {
                         onDrop={handleFileDrop}
                         onClick={() => fileInputRef.current?.click()}
                         className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
-                            isDragging ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-teal-400 hover:bg-teal-50/50"
+                            isDragging ? "border-teal-500 bg-teal-500/10" : "border-slate-700 bg-slate-800/50 hover:border-teal-500/50 hover:bg-teal-500/5"
                         }`}
                     >
                         <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.doc,.docx" className="hidden" onChange={handleFileInput} />
                         {uploadLoading ? (
                             <div className="flex flex-col items-center gap-2">
                                 <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
-                                <p className="text-xs text-slate-500">Reading document…</p>
+                                <p className="text-xs text-slate-400">Reading document…</p>
                             </div>
                         ) : uploadedFile && uploadedText ? (
                             <div className="flex flex-col items-center gap-2">
                                 <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                                <p className="text-xs font-semibold text-slate-700">{uploadedFile.name}</p>
-                                <p className="text-xs text-slate-400">{uploadedText.length.toLocaleString()} chars extracted</p>
+                                <p className="text-xs font-semibold text-slate-200">{uploadedFile.name}</p>
+                                <p className="text-xs text-slate-500">{uploadedText.length.toLocaleString()} chars extracted</p>
                                 <button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setUploadedText(""); }} className="text-xs text-rose-500 hover:underline flex items-center gap-1">
                                     <X className="h-3 w-3" /> Remove
                                 </button>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2">
-                                <Upload className="h-8 w-8 text-slate-400" />
-                                <p className="text-xs font-medium text-slate-600">Drag & drop or click</p>
-                                <p className="text-xs text-slate-400">PDF, TXT, MD, CSV, DOC</p>
+                                <Upload className="h-8 w-8 text-slate-600" />
+                                <p className="text-xs font-medium text-slate-400">Drag & drop or click</p>
+                                <p className="text-xs text-slate-600">PDF, TXT, MD, CSV, DOC</p>
                             </div>
                         )}
                     </div>
-                    {uploadError && <p className="text-xs text-rose-600 bg-rose-50 rounded-xl px-3 py-2">{uploadError}</p>}
+                    {uploadError && <p className="text-xs text-rose-400 bg-rose-500/10 rounded-xl px-3 py-2">{uploadError}</p>}
                     {uploadedText && (
                         <p className="text-xs text-slate-500 italic line-clamp-3">"{uploadedText.slice(0, 150)}…"</p>
                     )}
                 </div>
 
                 {/* Protocol Library */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-slate-800">Protocol Library</p>
+                        <p className="text-sm font-semibold text-slate-200">Protocol Library</p>
                         <button onClick={() => setShowForm((v) => !v)} className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-500 text-white hover:bg-teal-600 transition">
                             <Plus className="h-4 w-4" />
                         </button>
                     </div>
 
                     {showForm && (
-                        <form onSubmit={createProtocol} className="space-y-2 border-t border-slate-100 pt-3">
+                        <form onSubmit={createProtocol} className="space-y-2 border-t border-slate-800 pt-3">
                             <Input placeholder="Protocol name *" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required />
                             <Input placeholder="Sample type" value={draft.sampleType} onChange={(e) => setDraft({ ...draft, sampleType: e.target.value })} />
                             <Input placeholder="Objective" value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} />
                             <textarea
-                                className="min-h-16 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                                className="min-h-16 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                                 placeholder="Short SOP description"
                                 value={draft.description}
                                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
@@ -275,11 +275,11 @@ export function ProtocolWorkspace() {
                             <button
                                 key={p.id}
                                 onClick={() => setSelectedId(p.id)}
-                                className={`group w-full rounded-2xl border p-3 text-left transition ${selectedId === p.id ? "border-teal-400 bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}
+                                className={`group w-full rounded-2xl border p-3 text-left transition ${selectedId === p.id ? "border-teal-500 bg-teal-500/10" : "border-slate-800 bg-slate-800/50 hover:border-slate-700"}`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <p className="truncate text-sm font-semibold text-slate-900">{p.name}</p>
+                                        <p className="truncate text-sm font-semibold text-slate-100">{p.name}</p>
                                         <p className="truncate text-xs text-slate-500">{p.sampleType || "No sample type"}</p>
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -298,14 +298,14 @@ export function ProtocolWorkspace() {
             {/* ── Main content ── */}
             <main className="space-y-6">
                 {/* AI Query Panel */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-5">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600">
                             <Sparkles className="h-5 w-5" />
                         </div>
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-widest text-teal-600">M1 · Protocol Assistant</p>
-                            <h2 className="text-lg font-bold text-slate-900">
+                            <h2 className="text-lg font-bold text-white">
                                 {selectedProtocol ? selectedProtocol.name : uploadedFile ? uploadedFile.name : "AI Protocol Analyzer"}
                             </h2>
                         </div>
@@ -318,10 +318,10 @@ export function ProtocolWorkspace() {
                     </div>
 
                     {!selectedProtocol && !uploadedText && (
-                        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center space-y-2">
-                            <FileText className="h-10 w-10 text-slate-300 mx-auto" />
-                            <p className="text-sm font-medium text-slate-500">Upload a document or select a protocol to start querying</p>
-                            <p className="text-xs text-slate-400">Supports PDF, TXT, DOC, and manually created SOPs</p>
+                        <div className="rounded-2xl border-2 border-dashed border-slate-800 bg-slate-800/30 p-8 text-center space-y-2">
+                            <FileText className="h-10 w-10 text-slate-600 mx-auto" />
+                            <p className="text-sm font-medium text-slate-400">Upload a document or select a protocol to start querying</p>
+                            <p className="text-xs text-slate-600">Supports PDF, TXT, DOC, and manually created SOPs</p>
                         </div>
                     )}
 
@@ -329,7 +329,7 @@ export function ProtocolWorkspace() {
                         <>
                             <form onSubmit={askAI} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
                                 <select
-                                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500"
+                                    className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-teal-500"
                                     value={queryType}
                                     onChange={(e) => setQueryType(e.target.value as ProtocolQueryType)}
                                 >
@@ -356,17 +356,17 @@ export function ProtocolWorkspace() {
                                         key={q}
                                         type="button"
                                         onClick={() => askAI(undefined, q)}
-                                        className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
+                                        className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-teal-500/50 hover:bg-teal-500/10 hover:text-teal-400"
                                     >
                                         <ChevronRight className="h-3 w-3" />{q}
                                     </button>
                                 ))}
                             </div>
 
-                            {error && <div className="rounded-xl bg-rose-50 border border-rose-100 p-4 text-sm text-rose-700">{error}</div>}
+                            {error && <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-sm text-rose-400">{error}</div>}
 
                             {aiResponse && (
-                                <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6 space-y-3">
+                                <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-slate-900 p-6 space-y-3">
                                     <div className="flex items-center gap-2 mb-4">
                                         {aiResponse.type === "reagents"
                                             ? <TestTube2 className="h-5 w-5 text-teal-600" />
@@ -376,13 +376,13 @@ export function ProtocolWorkspace() {
                                     </div>
                                     <div className="space-y-2">
                                         {aiResponse.content.split('\n').map((line, i) => {
-                                            if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-slate-900 mt-4 mb-1">{line.slice(3)}</h3>;
-                                            if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-slate-900 mt-4 mb-2">{line.slice(2)}</h2>;
-                                            if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-semibold text-slate-800">{line.slice(2, -2)}</p>;
-                                            if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} className="flex gap-2 text-slate-700 text-sm"><span className="text-teal-600 mt-0.5 shrink-0">•</span><span>{line.slice(2)}</span></div>;
-                                            if (/^\d+\.\s/.test(line)) return <div key={i} className="flex gap-2 text-slate-700 text-sm ml-1"><span className="font-semibold text-teal-700 shrink-0">{line.match(/^\d+/)?.[0]}.</span><span>{line.replace(/^\d+\.\s/, '')}</span></div>;
+                                            if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-slate-100 mt-4 mb-1">{line.slice(3)}</h3>;
+                                            if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-white mt-4 mb-2">{line.slice(2)}</h2>;
+                                            if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-semibold text-slate-200">{line.slice(2, -2)}</p>;
+                                            if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} className="flex gap-2 text-slate-300 text-sm"><span className="text-teal-400 mt-0.5 shrink-0">•</span><span>{line.slice(2)}</span></div>;
+                                            if (/^\d+\.\s/.test(line)) return <div key={i} className="flex gap-2 text-slate-300 text-sm ml-1"><span className="font-semibold text-teal-400 shrink-0">{line.match(/^\d+/)?.[0]}.</span><span>{line.replace(/^\d+\.\s/, '')}</span></div>;
                                             if (!line.trim()) return <div key={i} className="h-1" />;
-                                            return <p key={i} className="text-slate-700 text-sm leading-relaxed">{line}</p>;
+                                            return <p key={i} className="text-slate-300 text-sm leading-relaxed">{line}</p>;
                                         })}
                                     </div>
                                 </div>
@@ -409,16 +409,16 @@ function ProtocolSteps({ protocol, onChange }: { protocol: StoredProtocol; onCha
         onChange({ ...protocol, steps: [...steps, { order_num: steps.length + 1, instruction: "", duration_min: undefined, notes: "" }] });
     }
     return (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">Step Viewer</h3>
+                <h3 className="font-semibold text-slate-100">Step Viewer</h3>
                 <Button type="button" variant="secondary" onClick={addStep} className="gap-2 text-sm"><Plus className="h-4 w-4" />Add Step</Button>
             </div>
             <div className="space-y-3">
                 {steps.map((step, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                    <div key={i} className="rounded-2xl border border-slate-800 bg-slate-800/50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{i + 1}</span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-xs font-bold text-teal-400">{i + 1}</span>
                             <Input
                                 placeholder="Instruction"
                                 value={step.instruction}
@@ -428,7 +428,7 @@ function ProtocolSteps({ protocol, onChange }: { protocol: StoredProtocol; onCha
                                     onChange({ ...protocol, steps: next });
                                 }}
                             />
-                            <button type="button" onClick={() => onChange({ ...protocol, steps: steps.filter((_, j) => j !== i).map((s, j) => ({ ...s, order_num: j + 1 })) })} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
+                            <button type="button" onClick={() => onChange({ ...protocol, steps: steps.filter((_, j) => j !== i).map((s, j) => ({ ...s, order_num: j + 1 })) })} className="rounded-full p-1.5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 transition">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
@@ -446,7 +446,7 @@ function ProtocolSteps({ protocol, onChange }: { protocol: StoredProtocol; onCha
                         </div>
                     </div>
                 ))}
-                {!steps.length && <p className="text-sm text-slate-400 text-center py-4">No steps yet. Add the first step above.</p>}
+                {!steps.length && <p className="text-sm text-slate-500 text-center py-4">No steps yet. Add the first step above.</p>}
             </div>
         </div>
     );
@@ -458,21 +458,21 @@ function ProtocolReagents({ protocol, onChange }: { protocol: StoredProtocol; on
         onChange({ ...protocol, reagents: [...reagents, { name: "", quantity: undefined, unit: "ml", supplier: "", notes: "" }] });
     }
     return (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">Reagents</h3>
+                <h3 className="font-semibold text-slate-100">Reagents</h3>
                 <Button type="button" variant="secondary" onClick={addReagent} className="gap-2 text-sm"><Plus className="h-4 w-4" />Add Reagent</Button>
             </div>
             <div className="space-y-3">
                 {reagents.map((reagent, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                    <div key={i} className="rounded-2xl border border-slate-800 bg-slate-800/50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
                             <Input placeholder="Reagent name" value={reagent.name} onChange={(e) => {
                                 const next = [...reagents];
                                 next[i] = { ...reagent, name: e.target.value };
                                 onChange({ ...protocol, reagents: next });
                             }} />
-                            <button type="button" onClick={() => onChange({ ...protocol, reagents: reagents.filter((_, j) => j !== i) })} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
+                            <button type="button" onClick={() => onChange({ ...protocol, reagents: reagents.filter((_, j) => j !== i) })} className="rounded-full p-1.5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 transition">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
@@ -495,7 +495,7 @@ function ProtocolReagents({ protocol, onChange }: { protocol: StoredProtocol; on
                         </div>
                     </div>
                 ))}
-                {!reagents.length && <p className="text-sm text-slate-400 text-center py-4">No reagents yet. Add materials above.</p>}
+                {!reagents.length && <p className="text-sm text-slate-500 text-center py-4">No reagents yet. Add materials above.</p>}
             </div>
         </div>
     );

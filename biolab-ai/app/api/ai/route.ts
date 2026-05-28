@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export async function POST(request: NextRequest) {
     try {
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+
         if (!GEMINI_API_KEY) {
             return NextResponse.json(
                 { error: "AI service not configured. Please add GEMINI_API_KEY to your environment variables." },
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
             const errBody = await response.text();
             console.error("Gemini API error:", errBody);
-            return NextResponse.json({ error: "AI service returned an error. Check your API key." }, { status: 502 });
+            return NextResponse.json({ error: `AI service error (${response.status}). Check your API key is valid.` }, { status: 502 });
         }
 
         const data = await response.json();
