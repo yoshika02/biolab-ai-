@@ -2,17 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Search, Upload, Link as LinkIcon, FileText, Loader2, Sparkles, X, CheckCircle2 } from 'lucide-react';
-
-async function callAI(prompt: string): Promise<string> {
-    const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'AI request failed');
-    return data.result;
-}
+import { callGemini } from '@/lib/gemini';
 
 function SummaryBox({ content, loading }: { content: string; loading: boolean }) {
     if (loading) return (
@@ -91,7 +81,7 @@ Return exactly 5 relevant research papers in this JSON format (no markdown, just
 
 Make them highly relevant to the search query. Use realistic titles, authors, and abstracts from the biomedical/life sciences domain.`;
 
-            const aiText = await callAI(prompt);
+            const aiText = await callGemini(prompt);
             const jsonMatch = aiText.match(/\[[\s\S]*\]/);
             if (!jsonMatch) throw new Error('Could not parse AI response.');
             const parsed: SearchResult[] = JSON.parse(jsonMatch[0]);
@@ -123,7 +113,7 @@ Write a detailed summary with these sections:
 ## Limitations
 
 Be specific, insightful and use clear language.`;
-            const result = await callAI(prompt);
+            const result = await callGemini(prompt);
             setSummary(result);
         } catch {
             setSummary('Failed to generate summary. Please check your AI configuration.');
@@ -183,7 +173,7 @@ Structure your summary with:
 ## Limitations
 
 Be detailed, accurate, and helpful for a lab researcher.`;
-            const result = await callAI(prompt);
+            const result = await callGemini(prompt);
             setUploadSummary(result);
         } catch (err) {
             setUploadError(err instanceof Error ? err.message : 'Summarization failed.');

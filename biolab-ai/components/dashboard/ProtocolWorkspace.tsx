@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import type { Protocol, ProtocolAIResponse, ProtocolQueryType } from "@/lib/protocol-ai";
+import { callGemini } from "@/lib/gemini";
 
 type StoredProtocol = Protocol & { id: string; createdAt: string; status: "Draft" | "Ready" | "Archived" };
 
@@ -170,20 +171,34 @@ export function ProtocolWorkspace() {
         setError("");
         setAiResponse(null);
 
-        // Build the protocol context — use uploaded text if available
-        const contextProtocol: Protocol = selectedProtocol
-            ? { ...selectedProtocol, description: uploadedText || selectedProtocol.description }
-            : { name: uploadedFile?.name || "Uploaded Document", description: uploadedText };
-
         try {
-            const res = await fetch("/api/protocol/query", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ protocol: contextProtocol, query: question, queryType }),
-            });
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || "Failed to generate response");
-            setAiResponse(result);
+            // Build the protocol context — use uploaded text if available
+            const protocol: Protocol = selectedProtocol
+                ? { ...selectedProtocol, description: uploadedText || selectedProtocol.description }
+                : { name: uploadedFile?.name || "Uploaded Document", description: uploadedText };
+
+            const steps = (protocol.steps || [])
+                .map((s, i) => `${i + 1}. ${s.instruction}${s.duration_min ? ` (${s.duration_min} min)` : ""}${s.notes ? ` — ${s.notes}` : ""}`)
+                .join("\n");
+            const reagents = (protocol.reagents || [])
+                .map((r) => `- ${r.name}${r.quantity ? ` ${r.quantity}${r.unit || ""}` : ""}${r.supplier ? ` (${r.supplier})` : ""}`)
+                .join("\n");
+
+            const prompt = `You are an expert biomedical lab assistant helping a researcher with their lab protocol.
+
+Protocol Name: ${protocol.name}
+${protocol.objective ? `Objective: ${protocol.objective}` : ""}
+${protocol.sampleType ? `Sample Type: ${protocol.sampleType}` : ""}
+${protocol.description ? `Description: ${protocol.description}` : ""}
+${steps ? `\nProtocol Steps:\n${steps}` : "No steps defined yet."}
+${reagents ? `\nReagents/Materials:\n${reagents}` : "No reagents defined yet."}
+
+User Question: ${question}
+
+Provide a thorough, structured, practical answer. Use ## headings, bullet points (- ), and numbered lists where appropriate. Be specific to this protocol.`;
+
+            const content = await callGemini(prompt);
+            setAiResponse({ type: "instructions", content });
             setQuery(question);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to generate response");
@@ -191,6 +206,7 @@ export function ProtocolWorkspace() {
             setLoading(false);
         }
     }
+
 
     return (
         <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
