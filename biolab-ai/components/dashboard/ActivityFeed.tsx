@@ -1,61 +1,61 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
-import { BookOpen, Boxes, FileText, FlaskRound } from "lucide-react";
-import { api } from "@/lib/api";
+import { BookOpen, Boxes, FileText, FlaskRound, ShieldAlert, Sparkles } from "lucide-react";
 
 interface ActivityEntry {
     id: string;
-    user: string;
     action: string;
     module: string;
-    time: string;
+    createdAt: string;
 }
 
 export function ActivityFeed() {
     const [recentLog, setRecentLog] = useState<ActivityEntry[]>([]);
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                const res = await fetch(api.activity.logs);
-                const data = await res.json();
-                if (data.logs) setRecentLog(data.logs);
-            } catch (error) {
-                console.error("Failed to fetch activity logs:", error);
+        const loadLogs = () => {
+            const stored = window.localStorage.getItem("biolab.activity_logs");
+            if (stored) {
+                try {
+                    setRecentLog(JSON.parse(stored).slice(0, 4));
+                } catch {
+                    setRecentLog([]);
+                }
             }
         };
 
-        fetchLogs();
-        const interval = setInterval(fetchLogs, 60000);
+        loadLogs();
+        // Check logs every 5s for snappy interactions
+        const interval = setInterval(loadLogs, 5000);
         return () => clearInterval(interval);
     }, []);
 
     const fallbackLog: ActivityEntry[] = [
-        { id: "fallback-protocol", user: "BioLab AI", action: "prepared protocol workspace for SOP queries", module: "Protocol", time: "Just now" },
-        { id: "fallback-inventory", user: "Inventory", action: "is ready for reagent expiry tracking", module: "Inventory", time: "Today" },
-        { id: "fallback-experiment", user: "Experiment Logger", action: "is ready for active run notes", module: "Experiments", time: "Today" },
+        { id: "fallback-1", action: "prepared protocol workspace for SOP queries", module: "Protocol", createdAt: new Date(Date.now() - 15 * 60000).toISOString() },
+        { id: "fallback-2", action: "logged daily measurements for Delta-12", module: "Experiment", createdAt: new Date(Date.now() - 60 * 60000).toISOString() },
+        { id: "fallback-3", action: "designed PCR primers for GFP-Reporter", module: "Primer", createdAt: new Date(Date.now() - 120 * 60000).toISOString() },
     ];
     const visibleLog = recentLog.length ? recentLog : fallbackLog;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {visibleLog.map((entry) => {
                 const Icon = getActivityIcon(entry.module);
+                const timeStr = new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
-                    <div key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-teal-700 shadow-sm">
-                                <Icon className="h-5 w-5" />
+                    <div key={entry.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4 transition hover:border-slate-700">
+                        <div className="flex gap-3.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-teal-400">
+                                <Icon className="h-4.5 w-4.5" />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-900">
-                                    <span className="font-semibold">{entry.user}</span> {entry.action}
+                                <p className="text-xs text-slate-200 leading-relaxed">
+                                    <span className="font-bold text-slate-100 font-mono text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider mr-1.5">{entry.module}</span>
+                                    <span>{entry.action}</span>
                                 </p>
-                                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                                    <span>{entry.module}</span>
-                                    <span>-</span>
-                                    <span>{entry.time}</span>
+                                <div className="mt-1.5 text-[9px] font-bold text-slate-500 font-mono">
+                                    <span>{timeStr}</span>
                                 </div>
                             </div>
                         </div>
@@ -71,5 +71,7 @@ function getActivityIcon(moduleName: string) {
     if (normalized.includes("protocol")) return FileText;
     if (normalized.includes("inventory")) return Boxes;
     if (normalized.includes("paper")) return BookOpen;
+    if (normalized.includes("safety")) return ShieldAlert;
+    if (normalized.includes("primer")) return Sparkles;
     return FlaskRound;
 }

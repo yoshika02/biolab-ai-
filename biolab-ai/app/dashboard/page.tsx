@@ -1,11 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-    AlertTriangle, BarChart3, BookOpen, Boxes, FileText, FlaskRound,
-    ShieldCheck, TrendingUp, TrendingDown, Activity, Zap, Clock,
-    ArrowRight, CheckCircle2, XCircle, Flame
+    AlertTriangle,
+    BarChart3,
+    BookOpen,
+    Boxes,
+    FileText,
+    FlaskRound,
+    ShieldCheck,
+    TrendingUp,
+    Clock,
+    ArrowRight,
+    CheckCircle2,
+    XCircle,
+    Activity,
+    Zap,
+    Flame,
+    Compass
 } from "lucide-react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
@@ -30,7 +43,7 @@ const moduleLinks = [
         desc: "Summarize PubMed & PDFs",
     },
     {
-        label: "Inventory",
+        label: "Inventory Tracker",
         href: "/dashboard/inventory",
         icon: Boxes,
         color: "from-purple-500/20 to-purple-600/10",
@@ -39,7 +52,7 @@ const moduleLinks = [
         desc: "Track reagents & expiry",
     },
     {
-        label: "Experiments",
+        label: "Experiment Logger",
         href: "/dashboard/experiments",
         icon: FlaskRound,
         color: "from-amber-500/20 to-amber-600/10",
@@ -48,67 +61,164 @@ const moduleLinks = [
         desc: "Log results & anomalies",
     },
     {
+        label: "PCR Primer Designer",
+        href: "/dashboard/primers",
+        icon: Compass,
+        color: "from-emerald-500/20 to-emerald-600/10",
+        border: "border-emerald-500/30",
+        text: "text-emerald-400",
+        desc: "Design oligos & BLAST",
+    },
+    {
         label: "Safety Chatbot",
         href: "/dashboard/safety",
         icon: ShieldCheck,
         color: "from-rose-500/20 to-rose-600/10",
         border: "border-rose-500/30",
         text: "text-rose-400",
-        desc: "Chemical safety checks",
-    },
-    {
-        label: "Analytics",
-        href: "/dashboard/analytics",
-        icon: BarChart3,
-        color: "from-emerald-500/20 to-emerald-600/10",
-        border: "border-emerald-500/30",
-        text: "text-emerald-400",
-        desc: "Trends & weekly digest",
+        desc: "Chemical compatibility console",
     },
 ];
 
 const storageKeys = [
-    { key: "biolab.protocols", label: "Protocol SOPs", icon: FileText, color: "text-teal-400", trend: "+1 this week" },
-    { key: "biolab.papers", label: "Papers Reviewed", icon: BookOpen, color: "text-blue-400", trend: "New papers ready" },
-    { key: "biolab.inventory", label: "Inventory Items", icon: Boxes, color: "text-purple-400", trend: "2 expiring soon" },
-    { key: "biolab.experiments", label: "Active Experiments", icon: FlaskRound, color: "text-amber-400", trend: "Live tracking" },
+    { key: "biolab.protocols_seed", dbKey: "biolab.protocols_seed", label: "SOP Protocols", icon: FileText, color: "text-teal-400", trend: "Offline templates loaded" },
+    { key: "biolab.papers_seed", dbKey: "biolab.papers_seed", label: "PubMed Papers", icon: BookOpen, color: "text-blue-400", trend: "Literature index sync" },
+    { key: "biolab.inventory_premium", dbKey: "biolab.inventory_premium", label: "Reagents Stock", icon: Boxes, color: "text-purple-400", trend: "Active catalog list" },
+    { key: "biolab.experiments_premium", dbKey: "biolab.experiments_premium", label: "Research Runs", icon: FlaskRound, color: "text-amber-400", trend: "Timeline experiments log" },
 ];
-
-function readCount(key: string) {
-    if (typeof window === "undefined") return 0;
-    try {
-        const value = JSON.parse(window.localStorage.getItem(key) || "[]");
-        return Array.isArray(value) ? value.length : 0;
-    } catch {
-        return 0;
-    }
-}
 
 export default function DashboardHome() {
     const [counts, setCounts] = useState<Record<string, number>>({});
     const now = new Date();
 
     useEffect(() => {
-        setCounts(Object.fromEntries(storageKeys.map((item) => [item.key, readCount(item.key)])));
+        // 1. Initializing seed data for our laboratory if empty (Hypothetical, clean, realistic entries)
+        if (typeof window !== "undefined") {
+            const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed");
+            if (!hasSeeded) {
+                // Seeding Inventory
+                const mockInventory = [
+                    { id: "inv-1", item: "Ethanol (99% pure)", category: "Solvents", quantity: 2.5, unit: "L", location: "Cabinet B (Flammables)" },
+                    { id: "inv-2", item: "Nitric Acid (Concentrated)", category: "Acids", quantity: 500, unit: "mL", location: "Cabinet A (Acids)" },
+                    { id: "inv-3", item: "Tris-HCl Buffer (pH 8.0)", category: "Buffers", quantity: 1, unit: "L", location: "Shelf C" },
+                    { id: "inv-4", item: "DAPI Nucleic Acid Stain", category: "Stains", quantity: 10, unit: "mg", location: "Freezer Box F" }
+                ];
+                window.localStorage.setItem("biolab.inventory_premium", JSON.stringify(mockInventory));
+
+                // Seeding Experiments
+                const mockExperiments = [
+                    {
+                        id: "exp-1",
+                        name: "Growth curve study - Delta-12",
+                        stage: "Running",
+                        createdAt: new Date(Date.now() - 4 * 24 * 3600000).toISOString(),
+                        logs: [
+                            { date: "Day 1", od: 0.45, ph: 7.2, yield: 40, notes: "Inoculation successful. Normal growth rate." },
+                            { date: "Day 2", od: 0.92, ph: 5.1, yield: 65, notes: "Sudden sharp pH crash to 5.1. Sour odor observed in bacterial culture." }
+                        ]
+                    },
+                    {
+                        id: "exp-2",
+                        name: "BRCA1 CRISPR Knockout Verification",
+                        stage: "Analysis",
+                        createdAt: new Date(Date.now() - 8 * 24 * 3600000).toISOString(),
+                        logs: [
+                            { date: "Day 1", od: 0.35, ph: 7.4, yield: 84, notes: "GEL electrophoresis verification. Amplification detected at 250bp target." }
+                        ]
+                    },
+                    {
+                        id: "exp-3",
+                        name: "GFP Expressing E. coli Culture",
+                        stage: "Completed",
+                        createdAt: new Date(Date.now() - 15 * 24 * 3600000).toISOString(),
+                        logs: [
+                            { date: "Day 1", od: 0.88, ph: 7.0, yield: 92, notes: "Brilliant green fluorescence under UV light. High validation rate." }
+                        ]
+                    }
+                ];
+                window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(mockExperiments));
+
+                // Seeding Primers
+                const mockPrimers = [
+                    {
+                        id: "prim-seed-1",
+                        geneName: "GFP-Reporter",
+                        geneSequence: "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAG...",
+                        forwardPrimer: "ATGGTGAGCAAGGGCG",
+                        reversePrimer: "TTACTTGTACAGCTCG",
+                        tmForward: 58.4,
+                        tmReverse: 57.9,
+                        gcForward: 53.2,
+                        gcReverse: 51.5,
+                        ampliconSize: 240,
+                        qualityScore: 92,
+                        offTargetHits: 0,
+                        createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString()
+                    }
+                ];
+                window.localStorage.setItem("biolab.primers_premium", JSON.stringify(mockPrimers));
+
+                // Seeding Activity Logs
+                const mockLogs = [
+                    { id: "act-1", action: "logged daily measurements for Delta-12", module: "Experiment", createdAt: new Date(Date.now() - 1 * 3600000).toISOString() },
+                    { id: "act-2", action: "created new CRISPR knockout target", module: "Experiment", createdAt: new Date(Date.now() - 4 * 3600000).toISOString() },
+                    { id: "act-3", action: "performed SDS safety review for Nitric Acid", module: "Safety", createdAt: new Date(Date.now() - 12 * 3600000).toISOString() },
+                    { id: "act-4", action: "designed PCR primers for GFP-Reporter", module: "Primer", createdAt: new Date(Date.now() - 48 * 3600000).toISOString() }
+                ];
+                window.localStorage.setItem("biolab.activity_logs", JSON.stringify(mockLogs));
+
+                // Finalize seed completion
+                window.localStorage.setItem("biolab.seeding_premium_completed", "true");
+            }
+        }
+
+        // Live dynamic local storage count reader
+        const updateCounts = () => {
+            const currentCounts: Record<string, number> = {};
+            storageKeys.forEach(item => {
+                if (typeof window !== "undefined") {
+                    try {
+                        const val = window.localStorage.getItem(item.dbKey);
+                        if (val) {
+                            const parsed = JSON.parse(val);
+                            currentCounts[item.key] = Array.isArray(parsed) ? parsed.length : 0;
+                        } else {
+                            // Fallback seeds count if not yet initialized in localStorage
+                            if (item.key.includes("protocol")) currentCounts[item.key] = 4;
+                            else if (item.key.includes("paper")) currentCounts[item.key] = 7;
+                            else currentCounts[item.key] = 0;
+                        }
+                    } catch {
+                        currentCounts[item.key] = 0;
+                    }
+                }
+            });
+            setCounts(currentCounts);
+        };
+
+        updateCounts();
+        const interval = setInterval(updateCounts, 5000);
+        return () => clearInterval(interval);
     }, []);
 
-    const totalProtocols = counts["biolab.protocols"] || 0;
+    const totalReagents = counts["biolab.inventory_premium"] || 0;
+    const totalExperiments = counts["biolab.experiments_premium"] || 0;
 
     return (
         <div className="space-y-8">
             <AlertBanner />
 
             {/* Welcome Hero Strip */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 border border-teal-800/40 p-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 border border-teal-800/40 p-8 shadow-lg">
                 <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" />
                 <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-sm font-medium text-teal-400 uppercase tracking-widest mb-1">
+                        <p className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-1">
                             {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </p>
-                        <h2 className="text-3xl font-bold text-white">Good {now.getHours() < 12 ? "Morning" : now.getHours() < 17 ? "Afternoon" : "Evening"}, Researcher 👋</h2>
-                        <p className="mt-2 text-slate-400">
-                            You have <span className="font-semibold text-teal-300">{totalProtocols} protocol SOPs</span> ready for AI-assisted analysis.
+                        <h2 className="text-3xl font-bold text-white">Welcome Back, Yoshika 👋</h2>
+                        <p className="mt-2 text-slate-300 text-sm">
+                            Molecular command console is online. <span className="font-semibold text-teal-300">{totalExperiments} experiments</span> are currently logged, with <span className="font-semibold text-teal-300">{totalReagents} chemical materials</span> cataloged.
                         </p>
                     </div>
                     <Link
@@ -128,54 +238,55 @@ export default function DashboardHome() {
                     const Icon = item.icon;
                     const count = counts[item.key] || 0;
                     return (
-                        <div key={item.key} className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-700 transition duration-200">
+                        <div key={item.key} className="relative overflow-hidden rounded-3xl bg-slate-900/60 border border-slate-800 p-5 hover:border-slate-700 transition duration-200 backdrop-blur shadow-md">
                             <div className="flex items-center justify-between mb-4">
-                                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-800 ${item.color}`}>
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 border border-slate-850 ${item.color}`}>
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 {count > 0 ? (
-                                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-400">
-                                        <TrendingUp className="h-3 w-3" /> Active
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 font-mono uppercase">
+                                        <TrendingUp className="h-3 w-3" /> Live
                                     </span>
                                 ) : (
-                                    <span className="flex items-center gap-1 text-xs font-medium text-slate-500">
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 font-mono uppercase">
                                         <Clock className="h-3 w-3" /> Empty
                                     </span>
                                 )}
                             </div>
-                            <p className="text-4xl font-bold text-white">{count}</p>
-                            <p className="mt-1 text-sm font-medium text-slate-400">{item.label}</p>
-                            <p className="mt-1 text-xs text-slate-600">{item.trend}</p>
+                            <p className="text-3xl font-bold text-white">{count}</p>
+                            <p className="mt-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">{item.label}</p>
+                            <p className="mt-2 text-[10px] font-medium text-slate-500 font-mono">{item.trend}</p>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Module Grid + Activity */}
+            {/* Module Grid + Activity Section */}
             <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+                
                 {/* Module Access Grid */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">Lab Modules</h3>
-                        <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                            {moduleLinks.length} modules
+                    <div className="flex items-center justify-between border-b border-slate-900 pb-2">
+                        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Lab Operations Modules</h3>
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-full uppercase">
+                            {moduleLinks.length} Active Modules
                         </span>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {moduleLinks.map((mod) => {
                             const Icon = mod.icon;
                             return (
                                 <Link
                                     key={mod.href}
                                     href={mod.href}
-                                    className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${mod.color} ${mod.border} p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg`}
+                                    className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${mod.color} ${mod.border} p-5 transition hover:scale-[1.02] hover:shadow-lg`}
                                 >
-                                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ${mod.text} mb-4`}>
+                                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950/80 border border-slate-800 ${mod.text} mb-4`}>
                                         <Icon className="h-5 w-5" />
                                     </div>
-                                    <p className="font-semibold text-slate-900">{mod.label}</p>
-                                    <p className="mt-1 text-xs text-slate-500">{mod.desc}</p>
-                                    <ArrowRight className={`absolute right-4 top-4 h-4 w-4 ${mod.text} opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1`} />
+                                    <p className="font-bold text-slate-100 text-sm group-hover:text-white transition">{mod.label}</p>
+                                    <p className="mt-1 text-xs text-slate-400 font-medium leading-relaxed">{mod.desc}</p>
+                                    <ArrowRight className={`absolute right-4 top-4 h-4 w-4 ${mod.text} opacity-0 transition group-hover:opacity-100 group-hover:translate-x-1`} />
                                 </Link>
                             );
                         })}
@@ -184,14 +295,14 @@ export default function DashboardHome() {
 
                 {/* Activity Feed */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">Activity Feed</h3>
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="flex items-center justify-between border-b border-slate-900 pb-2">
+                        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Active Audit Logs</h3>
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 font-mono uppercase bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             Live
                         </span>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm backdrop-blur">
                         <ActivityFeed />
                     </div>
                 </div>
@@ -199,43 +310,49 @@ export default function DashboardHome() {
 
             {/* Bottom Info Cards */}
             <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 mb-4">
-                        <Activity className="h-5 w-5" />
+                
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-md hover:border-slate-700 transition backdrop-blur">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-400 mb-4 shrink-0">
+                        <Activity className="h-4.5 w-4.5" />
                     </div>
-                    <p className="font-semibold text-slate-900">AI Weekly Digest</p>
-                    <p className="mt-1 text-sm text-slate-500">Review active experiment logs and inventory usage before the next lab meeting.</p>
+                    <p className="font-bold text-slate-200 text-sm">AI Weekly Digest</p>
+                    <p className="mt-1 text-xs text-slate-400 leading-relaxed">Review active experiment logs, pH crash logs, and raw metrics before the upcoming laboratory compliance check.</p>
                     <div className="mt-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Protocol SOPs ready for queries
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" /> 
+                            <span>Protocol SOPs indexed correctly</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <XCircle className="h-4 w-4 text-rose-400" /> 2 reagents expiring soon
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                            <XCircle className="h-4 w-4 text-rose-400 shrink-0" /> 
+                            <span>Storage safety alerts need review</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-4">
-                        <Flame className="h-5 w-5" />
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-md hover:border-slate-700 transition backdrop-blur">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 mb-4 shrink-0">
+                        <Flame className="h-4.5 w-4.5" />
                     </div>
-                    <p className="font-semibold text-slate-900">Priority Alerts</p>
-                    <p className="mt-1 text-sm text-slate-500">Resolve expiring reagents and unresolved anomalies before starting dependent protocols.</p>
-                    <Link href="/dashboard/inventory" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700">
-                        View inventory <ArrowRight className="h-3 w-3" />
+                    <p className="font-bold text-slate-200 text-sm">Priority Warnings</p>
+                    <p className="mt-1 text-xs text-slate-400 leading-relaxed">Clear chemical safety compliance alerts and complete CRISPR audits before launching dependent runs.</p>
+                    <Link href="/dashboard/safety" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition uppercase tracking-wider font-mono">
+                        <span>Resolve Alerts</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-4">
-                        <TrendingUp className="h-5 w-5" />
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-md hover:border-slate-700 transition backdrop-blur">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50/10 border border-emerald-500/25 text-emerald-400 mb-4 shrink-0">
+                        <BarChart3 className="h-4.5 w-4.5" />
                     </div>
-                    <p className="font-semibold text-slate-900">Research Progress</p>
-                    <p className="mt-1 text-sm text-slate-500">Track your lab's research milestones across all active experiments and protocol completions.</p>
-                    <Link href="/dashboard/analytics" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-                        Open analytics <ArrowRight className="h-3 w-3" />
+                    <p className="font-bold text-slate-200 text-sm">Performance Insights</p>
+                    <p className="mt-1 text-xs text-slate-400 leading-relaxed">View productivity trends, chemical depletion forecasting charts, and oligo designer logs.</p>
+                    <Link href="/dashboard/analytics" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition uppercase tracking-wider font-mono">
+                        <span>Open Analytics</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                 </div>
+
             </div>
         </div>
     );
