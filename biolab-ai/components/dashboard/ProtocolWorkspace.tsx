@@ -367,14 +367,24 @@ export function ProtocolWorkspace() {
 
                             {aiResponse && (
                                 <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6 space-y-3">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 mb-4">
                                         {aiResponse.type === "reagents"
                                             ? <TestTube2 className="h-5 w-5 text-teal-600" />
                                             : <ListChecks className="h-5 w-5 text-teal-600" />}
                                         <Badge variant="success">{aiResponse.type}</Badge>
-                                        <span className="text-xs text-slate-400 ml-auto">AI Generated</span>
+                                        <span className="text-xs text-slate-400 ml-auto">AI Generated · Gemini</span>
                                     </div>
-                                    <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-slate-800">{aiResponse.content}</pre>
+                                    <div className="space-y-2">
+                                        {aiResponse.content.split('\n').map((line, i) => {
+                                            if (line.startsWith('## ')) return <h3 key={i} className="text-base font-bold text-slate-900 mt-4 mb-1">{line.slice(3)}</h3>;
+                                            if (line.startsWith('# ')) return <h2 key={i} className="text-lg font-bold text-slate-900 mt-4 mb-2">{line.slice(2)}</h2>;
+                                            if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-semibold text-slate-800">{line.slice(2, -2)}</p>;
+                                            if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} className="flex gap-2 text-slate-700 text-sm"><span className="text-teal-600 mt-0.5 shrink-0">•</span><span>{line.slice(2)}</span></div>;
+                                            if (/^\d+\.\s/.test(line)) return <div key={i} className="flex gap-2 text-slate-700 text-sm ml-1"><span className="font-semibold text-teal-700 shrink-0">{line.match(/^\d+/)?.[0]}.</span><span>{line.replace(/^\d+\.\s/, '')}</span></div>;
+                                            if (!line.trim()) return <div key={i} className="h-1" />;
+                                            return <p key={i} className="text-slate-700 text-sm leading-relaxed">{line}</p>;
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </>

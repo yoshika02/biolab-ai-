@@ -1,0 +1,402 @@
+
+
+
+BioLab AI
+Product Specification Document
+AI-Powered Lab Intelligence Platform
+
+Version 1.0  ·  Major Project Document  ·  B.Tech Biotechnology
+NIT Jalandhar  ·  2025–2026
+PlatformBioLab AI — Unified Lab Intelligence PlatformTech StackNext.js · Cloudflare D1 · Anthropic Claude API · PythonModules7 modules across 5 phasesTotal PagesAll screens with layout, features, backendPrepared byYoshikaDate2026
+
+
+1. Platform Overview
+BioLab AI is a unified, AI-powered laboratory intelligence platform built specifically for biotechnology research institutions. It replaces scattered tools — protocol binders, Excel inventory sheets, paper lab notebooks, and manual literature searches — with a single intelligent system that understands the domain, learns from usage, and actively assists researchers in their daily work.
+
+1.1 Problem Statement
+• Researchers waste 2–4 hours per day searching through protocol PDFs, papers, and lab binders
+• Inventory is tracked in disconnected Excel sheets with no expiry alerts or reorder predictions
+• Experiment logs are handwritten or in individual files — no anomaly detection, no pattern spotting
+• Chemical safety information requires navigating to multiple external websites per query
+• No unified view of lab activity for lab heads and department heads
+
+1.2 Solution
+BioLab AI provides 7 interconnected AI modules, all sharing a single database and authentication system, accessible from a unified dashboard. Researchers interact with natural language; the platform responds with cited, accurate, domain-aware answers.
+
+1.3 Technology Stack
+LayerTechnologyPurposeFrontendNext.js 14 App Router + TypeScriptAll pages, routing, SSRStylingTailwind CSSUI components and layoutDatabaseCloudflare D1 (SQLite)All structured data storageAI EngineAnthropic Claude API (Sonnet)RAG Q&A, summaries, anomaly explanationVector StorePython + pgvector / FAISSProtocol chunk embeddings for RAGFile StorageCloudflare R2PDF uploads, experiment imagesAuthJWT + bcrypt + httpOnly cookiesSecure session managementDeploymentCloudflare Pages + WorkersEdge-deployed, global CDNORMDrizzle ORMType-safe D1 queriesMLPython + XGBoost + Scikit-learnAnomaly detection, reorder prediction
+
+
+2. Phase 1 — Authentication & Dashboard Shell
+
+2.1 Login Page
+Route: /login  |  Access: Public
+
+Layout
+Full pageCentered card layout. Background: light teal gradient wash. Logo top-center.Card (center)White card, 420px wide, rounded corners. BioLab AI wordmark at top.Form areaEmail field, password field (with show/hide toggle), 'Remember me' checkbox.CTA buttonFull-width teal button 'Sign In'. Spinner replaces text on loading.Bottom link'Don't have an account? Register ?' links to /register.Error bannerRed banner below button for wrong credentials, locked account messages.
+Features
+• Email + password form with real-time inline validation
+• Password visibility toggle (eye icon)
+• 'Remember me' checkbox — extends JWT refresh token from 7 days to 30 days
+• On success: redirect to /dashboard. Store JWT in httpOnly cookie.
+• Error states: wrong password, unregistered email, account locked after 5 attempts
+• Loading state on button during API call
+• Keyboard accessible — full tab navigation, Enter submits
+
+Backend API
+MethodEndpointDescriptionAuthPOST/api/auth/loginValidate credentials, issue JWT access + refresh tokensNonePOST/api/auth/logoutInvalidate session token from DBJWTPOST/api/auth/refreshReissue access token using refresh token cookieRefresh cookie
+D1 Tables Used
+• users — email lookup, password_hash comparison
+• sessions — create new session row on login, delete on logout
+
+2.2 Register Page
+Route: /register  |  Access: Public (Admin role requires invite code)
+
+Layout
+Full pageSame centered card layout as login. Card is taller to fit all fields.Field 1–2Full name (left) + Email (right) — 2-column grid.Field 3–4Department (left) + Institution (right) — 2-column grid.Field 5Role selector — pill toggle: Researcher (default) | Lab Head | Admin.Field 6Invite code — appears only when Admin role is selected.Field 7–8Password + Confirm password with strength meter bar below password field.CTAFull-width 'Create account' button. Disabled until all fields valid.
+Features
+• Live email uniqueness check (API call on blur — shows green tick or 'email taken')
+• Password strength meter: Weak / Fair / Strong / Very Strong based on entropy
+• Admin invite code field conditionally rendered when Admin role selected
+• Role descriptions shown as tooltip on hover over each role option
+• Success: auto-login and redirect to /dashboard
+
+Backend API
+MethodEndpointDescriptionAuthPOST/api/auth/registerCreate user, hash password, create session, return JWTNoneGET/api/auth/check-emailCheck if email already registeredNonePOST/api/auth/validate-inviteValidate admin invite codeNone
+
+
+2.3 Home Dashboard
+Route: /dashboard  |  Access: All authenticated roles
+
+Layout
+Left sidebarFixed 240px. Logo, nav links (all 7 modules), user avatar + role badge, logout. Active link = teal highlight.Top barDynamic page title (left). Global search bar (center). Notification bell with badge (right). User avatar dropdown.Stat cards row4 metric cards in a horizontal grid: Active Experiments, Reagents Expiring, Papers Summarized, Anomalies This Week.Alert bannerConditional: appears below stat cards if any reagent expires in 7 days or anomaly is unresolved. Dismissible.Quick access6 module cards in 2×3 grid. Each card: icon, module name, one-line description, arrow link. 'Coming soon' badge for future modules.Activity feedRight or bottom panel. Last 20 cross-module actions by all team members. Format: avatar + user + action + time ago.
+Features
+• Stat cards pull live counts from D1: active experiments (status=ACTIVE), reagents expiring (expiry_date ? 7 days), papers this week, anomalies this week
+• Alert banner conditionally rendered server-side. Each alert dismissible — dismissal recorded in DB
+• Quick-access module cards navigate to each module. Cards grayed out with 'Coming soon' badge for modules not yet in this phase
+• Activity feed polled every 60 seconds. Shows action icon by module type (colour-coded)
+• Notification bell: click opens slide-in panel from right with all unread notifications. Mark all as read button.
+• Global search (top bar) searches across protocols, papers, experiment names — returns unified results dropdown
+• Responsive sidebar: collapses to icon-only on screens below 1024px
+
+Backend API
+MethodEndpointDescriptionAuthGET/api/dashboard/statsReturn 4 metric counts for stat cardsJWTGET/api/dashboard/activityReturn last 20 activity_log entriesJWTGET/api/notificationsReturn all notifications for userJWTPOST/api/notifications/:id/readMark notification as readJWTGET/api/search?q=Global search across all modulesJWT
+D1 Tables Used
+• activity_log — feed query ordered by created_at DESC LIMIT 20
+• experiments — COUNT WHERE status = ACTIVE
+• inventory_items — COUNT WHERE expiry_date ? date('now', '+7 days')
+• experiment_entries — COUNT WHERE is_anomaly = 1 AND created_at ? 7 days ago
+• research_papers — COUNT WHERE created_at ? 7 days ago
+• notifications — all rows for user_id ordered by created_at DESC
+
+
+
+3. Phase 2 — Module 1: Protocol Assistant
+
+The Protocol Assistant allows researchers to upload lab SOPs, procedure PDFs, and manuals, then ask natural language questions answered directly from those documents with cited sources.
+
+3.1 Protocol Library Page
+Route: /dashboard/protocol  |  Access: All roles
+
+Layout
+Left panel (280px)Protocol library list. Search bar at top. 'Search all protocols' toggle. Scrollable protocol cards: name, status badge (Ready/Processing/Error), version, chunk count, upload date. Bottom: drag-and-drop PDF upload zone.Main areaChat interface. Scoped to selected protocol OR all protocols if none selected. Top bar shows scope label + 'New chat' button.Chat messagesScrollable message thread. User messages right-aligned (teal). AI messages left-aligned (white card) with numbered source citations below each response.Source drawerBelow each AI message: collapsible source chips showing protocol name + page number. Click expands to show the raw chunk text used.Input bar (bottom)Expandable textarea. Send button (Enter to send, Shift+Enter for new line). Disabled during streaming. Suggested question chips shown when chat is empty.
+Features
+• Upload PDF: drag-and-drop or file picker. Accepts PDF only, max 50 MB. Shows file name, size preview before upload.
+• On upload: file sent to Python RAG microservice ? chunked (800 chars, 120 overlap) ? embedded (OpenAI text-embedding-3-small) ? stored in pgvector. Status badge updates: Processing ? Ready.
+• Protocol version history: uploading a new PDF for same protocol creates a version record. Old versions accessible via dropdown.
+• Chat: question ? semantic search (top 5 chunks) ? context injected into Claude prompt ? streamed response with citations.
+• Source chips below each AI response: show protocol name, page number, relevance score. Click to expand raw chunk.
+• Protocol scoping: select a specific protocol to limit search to that document only. 'Search all' searches across entire library.
+• Suggested question chips shown on empty chat: 'What is the incubation time?', 'What buffers are required?', etc.
+• Step-by-step viewer: AI formats procedural answers as numbered steps with checkboxes (visual only, not persisted).
+• Chat history persisted: sessions saved to D1. Sidebar shows previous sessions per protocol.
+• Status polling: after upload, frontend polls /api/protocol/:id/status every 3 seconds until status = READY.
+
+Backend API
+MethodEndpointDescriptionAuthGET/api/protocolList all protocols with status + metadataJWTPOST/api/protocol/uploadUpload PDF, create protocol record, call RAG serviceJWTGET/api/protocol/:idGet single protocol details + version historyJWTGET/api/protocol/:id/statusPoll ingestion status (PROCESSING / READY / ERROR)JWTPOST/api/protocol/chatSSE stream: RAG search + Claude response with citationsJWTGET/api/protocol/chat/sessionsList all chat sessions for userJWTGET/api/protocol/chat/:idLoad messages for a specific sessionJWT
+D1 Tables Used
+• protocols — all protocol metadata, status, chunk_count
+• protocol_versions — version history per protocol
+• protocol_chat_sessions — one row per conversation thread
+• chat_messages — all Q&A pairs with sources JSON
+• activity_log — INSERT on upload, on chat
+
+
+
+4. Phase 2 — Module 2: Research Paper Summarizer
+
+
+4.1 Paper Input Page
+Route: /dashboard/papers  |  Access: All roles
+
+Layout
+Top input areaTabbed input: DOI tab | PubMed ID tab | Upload PDF tab. Single prominent input field per tab. 'Summarize' button.Loading stateSkeleton card with animated pulse while AI generates summary. Progress label: 'Reading paper…', 'Identifying key findings…', 'Finding research gaps…'Summary cardWhite card. Title, journal, authors, date at top. 5 sections below: Summary, Key Findings (bulleted), Methodology, Limitations, Research Gaps.Action barBelow summary: 'Suggested Next Experiment' block (highlighted amber). Buttons: Save to Library, Link to Experiment, Export PDF.Library panelRight sidebar or below: user's saved papers, searchable, tagged, star-able.
+Features
+• DOI input: fetch metadata from CrossRef API + full text from Unpaywall (open access) or abstract from PubMed.
+• PubMed ID input: fetch full metadata + abstract via PubMed E-utilities API.
+• PDF upload: extract text with pdfplumber ? send to Claude for summarization.
+• AI generates 6 outputs: 5-line summary, key findings (JSON array), methodology, limitations, research gaps, suggested next experiment.
+• Save to Library: saves paper + summary to D1. User can add tags and personal notes.
+• Link to Experiment: modal to select an active experiment. Creates paper_experiment_links row.
+• Library: search by title, filter by tags, sort by date or starred. Paginated list with summary preview on hover.
+• Re-summarize: button to regenerate summary if needed (uses stored text, no re-fetch).
+
+Backend API
+MethodEndpointDescriptionAuthPOST/api/papers/summarizeFetch paper metadata + text, generate AI summaryJWTPOST/api/papers/uploadUpload PDF, extract text, generate AI summaryJWTGET/api/papers/libraryList saved papers for user with filtersJWTPOST/api/papers/librarySave paper + summary to user libraryJWTPUT/api/papers/library/:idUpdate tags, notes, starred statusJWTPOST/api/papers/:id/linkLink paper to an experimentJWT
+D1 Tables Used
+• research_papers — paper metadata (title, DOI, PMID, authors, journal)
+• paper_summaries — AI-generated summary fields (6 outputs)
+• paper_library — user's saved papers with tags and notes
+• paper_experiment_links — links between papers and experiments
+
+
+
+5. Phase 3 — Module 3: Inventory Tracker
+
+
+5.1 Inventory Dashboard
+Route: /dashboard/inventory  |  Access: All roles (edit = Lab Head + Admin)
+
+Layout
+Stat row (top)4 cards: Total Items, Expiring This Week (red), Low Stock (amber), Total Value (optional cost tracking).Filter barCategory pills (All / Reagent / Chemical / Kit / Consumable / Equipment). Search by name. Sort dropdown (expiry, name, quantity).Inventory tableSortable table: Name, Category, Quantity+Unit, Location, Expiry, Storage Condition, Status. Inline actions: Edit, Log Usage, View History.Status badgesPer row: OK (green), Expiring Soon (amber), Expired (red), Low Stock (orange).Add item buttonTop-right. Opens slide-in drawer form (not a new page).Expiry alert panelCollapsible sidebar or card listing all items expiring within 30 days, sorted by urgency.
+Features
+• Add item: name, category, catalog number, supplier, quantity, unit, location, expiry date, storage condition, safety hazards, cost.
+• CSV import: upload Excel/CSV of existing inventory — auto-mapped to schema fields.
+• Expiry colour coding: Expired = red row, <7 days = amber, <30 days = yellow, OK = white.
+• Log usage: inline button. Enter quantity used. Deducts from inventory_items.quantity. Links to experiment (optional).
+• Usage history: per item drawer showing all usage_log entries — who used, when, how much, linked experiment.
+• AI reorder prediction: computed nightly by Python worker. Shows 'You will run out in ~12 days' per item.
+• Incompatible chemicals flag: if two items share a location and chemical_incompatibilities record exists, show warning badge.
+• Notification trigger: auto-insert notification row for items expiring in 30 / 7 / 1 days.
+• Export: download current inventory as CSV or PDF.
+
+Backend API
+MethodEndpointDescriptionAuthGET/api/inventoryList all items with filters + paginationJWTPOST/api/inventoryAdd new inventory itemJWT (Lab Head+)PUT/api/inventory/:idUpdate item fieldsJWT (Lab Head+)DELETE/api/inventory/:idDelete itemJWT (Admin)POST/api/inventory/:id/usageLog quantity used, deduct from stockJWTGET/api/inventory/:id/historyGet usage log for one itemJWTPOST/api/inventory/importBulk import from CSVJWT (Lab Head+)GET/api/inventory/expiringItems expiring within N daysJWTGET/api/inventory/predictionsAI reorder predictions for all itemsJWT
+D1 Tables Used
+• inventory_items — all item records with full metadata
+• inventory_usage_log — every usage event with quantity, user, experiment link
+• reorder_predictions — ML-computed predictions refreshed nightly
+• chemical_incompatibilities — checked when displaying storage location warnings
+• notifications — INSERT when expiry threshold crossed
+
+
+
+6. Phase 3 — Module 4: Experiment Logger
+
+
+6.1 Experiments List Page
+Route: /dashboard/experiments  |  Access: All roles
+
+Layout
+Top barPage title. '+ New Experiment' button (top right). Filter pills: All / Active / Paused / Completed / Failed.Experiment cardsGrid of cards. Each: experiment name, type badge, status badge, start date, days running, lead researcher avatar, anomaly count badge (red if > 0).Empty stateIllustrated empty state with 'Start your first experiment' CTA when list is empty.
+6.2 Experiment Detail Page
+Route: /dashboard/experiments/:id  |  Access: All roles
+
+Layout
+HeaderExperiment name, type, status badge, start date, linked protocol (if any), team member avatars. Edit button for Lab Head+.Tab 1: LogEntry form at top: date, measurement type selector, value, unit, notes, file attach. Submit logs entry. Timeline of past entries below.Entry timelineVertical timeline. Each entry: date, type, value, recorded by. Anomaly entries highlighted red with AI reason shown below.Tab 2: ChartsLine/scatter charts per measurement type (OD600, pH, yield). Baseline shown as dashed line. Anomaly points marked in red.Tab 3: FilesGrid of attached images and CSV files. Upload button. Click image to preview.Tab 4: PapersLinked research papers from paper_experiment_links. 'Link a paper' button.Tab 5: ReagentsInventory items used in this experiment from usage_log WHERE experiment_id = this.Sidebar (right)AI weekly summary (generated every Monday). Export to PDF button.
+Features
+• Create experiment: name, type (PCR / Cell Culture / Western Blot / etc.), description, start date, expected end date, linked protocol, team members (multi-select).
+• Log entry: measurement type (dropdown), value (number), unit, notes (text), attach image or CSV. One submit = one row in experiment_entries.
+• Anomaly detection: after each entry, Python worker computes Z-score against experiment_baselines. If |Z| > 2.5, is_anomaly = 1 and anomaly_reason populated.
+• Baseline computation: after first 5 entries of same measurement type, compute mean + std_dev. Stored in experiment_baselines. Updated with each new entry.
+• Charts: recharts line chart per measurement type. Baseline shown as horizontal dashed line. Anomaly points shown in red with tooltip explanation.
+• AI weekly summary: every Monday, Claude generates a plain-English summary of the week's entries for each active experiment. Shown in sidebar.
+• Export: one-click PDF lab report with all entries, charts, and AI summary.
+• Status update: Lab Head can change experiment status (Paused / Completed / Failed).
+
+Backend API
+MethodEndpointDescriptionAuthGET/api/experimentsList experiments (filter by status)JWTPOST/api/experimentsCreate new experimentJWTGET/api/experiments/:idGet full experiment with all entriesJWTPUT/api/experiments/:idUpdate experiment status or metadataJWT (Lab Head+)POST/api/experiments/:id/entriesLog a new measurement entryJWTGET/api/experiments/:id/entriesGet all entries for experimentJWTPOST/api/experiments/:id/filesUpload and attach a fileJWTGET/api/experiments/:id/summaryGet or trigger AI weekly summaryJWTPOST/api/experiments/:id/exportGenerate and return PDF lab reportJWT
+D1 Tables Used
+• experiments — main experiment record
+• experiment_entries — every logged measurement. is_anomaly + anomaly_reason populated by Python worker.
+• experiment_files — references to R2 file paths
+• experiment_baselines — statistical norms per measurement type per experiment
+• paper_experiment_links — linked research papers
+• inventory_usage_log — reagents consumed in this experiment
+
+
+
+7. Phase 4 — Module 5: PCR Primer Designer
+
+
+7.1 Primer Design Page
+Route: /dashboard/primers  |  Access: All roles
+
+Layout
+Input panel (left)Textarea for gene sequence (FASTA format). Gene name field. 'Design Primers' button. Advanced options toggle (amplicon size range, Tm range, GC range).Results panelRanked list of primer pair candidates. Each: forward + reverse sequence, Tm, GC%, amplicon size, quality score bar (0–100), off-target hit count.AI explanationBelow each primer pair: plain-English rationale from Claude explaining why this pair was recommended.BLAST statusPer pair: 'Checking off-targets…' spinner ? '0 off-target hits' (green) or 'N hits found' (amber/red).Save panelCheckbox to select primer pair. Link to experiment dropdown. Save button. Adds to primer_designs table.History tabPreviously designed primers for this user. Filter by gene name or experiment.
+Features
+• FASTA input: paste raw sequence or FASTA-formatted input. Auto-strip header line if present.
+• Biopython computation (Python service): sliding window over sequence to find candidate 18–25 bp primers. Compute Tm (nearest-neighbor method), GC%, hairpin and dimer prediction.
+• Quality score: weighted composite — Tm difference (penalise if >2°C apart), GC% (penalise if outside 40–60%), secondary structure score, amplicon size fit.
+• BLAST off-target check: submit primer pair to NCBI BLAST API (blastn) against genome of interest. Parse hit count into off_target_hits column.
+• Claude AI explanation: for top 3 pairs, prompt Claude to explain in plain English why this primer pair scores well or has caveats.
+• Save selected pair: link to experiment, add to primer_designs. Linked primers appear in Experiment detail > Reagents tab.
+
+Backend API
+MethodEndpointDescriptionAuthPOST/api/primers/designRun Biopython primer design, score, return ranked pairsJWTPOST/api/primers/blastSubmit primer pair to BLAST, return off-target countJWTPOST/api/primers/explainClaude AI explanation for a primer pairJWTPOST/api/primers/saveSave selected primer pair to primer_designs tableJWTGET/api/primersList saved primer designs for userJWT
+D1 Tables Used
+• primer_designs — all saved primer pairs with Tm, GC%, quality_score, off_target_hits
+
+
+
+8. Phase 4 — Module 6: Chemical Safety Chatbot
+
+
+8.1 Safety Chatbot Page
+Route: /dashboard/safety  |  Access: All roles
+
+Layout
+Full-width chatSame chat interface pattern as Protocol Assistant. Wider layout since no library sidebar needed.GHS panelWhen a chemical is identified in the response, a GHS hazard panel auto-renders below: pictograms (SVG icons), H-statements, storage conditions, PPE required.Suggested queriesOn empty chat: suggested question chips — 'Is ethanol safe to mix with bleach?', 'PPE for working with H2SO4?', 'How to handle a chloroform spill?'.Risk Register tabSecondary tab showing all chemicals in the lab (from inventory), their GHS class, last reviewed date, and risk level badge.Export buttonDownload chemical risk register as PDF for compliance documentation.
+Features
+• Natural language Q&A: 'Is it safe to mix X and Y?' ? fetch SDS data from PubChem ? inject into Claude prompt ? cited answer.
+• PubChem integration: on each message, extract chemical names ? query PubChem API for CID, hazard statements, GHS class, PPE, first aid.
+• Inventory-aware: the prompt includes a list of chemicals in the lab's inventory (from inventory_items) so the bot can say 'You currently have X stored in Shelf A3 — here are the risks'.
+• GHS panel: auto-rendered below any response mentioning a chemical with known GHS data. Shows pictogram codes as styled badges.
+• Incompatibility check: if user asks about two chemicals, check chemical_incompatibilities table. If record exists, show prominent red warning.
+• Emergency response: spill, exposure, fire protocol returned for any chemical on request.
+• Risk register: table of all chemicals in inventory cross-referenced with chemical_safety table. Lab heads can mark each as reviewed.
+• Export risk register: generate PDF for lab safety compliance records.
+
+Backend API
+MethodEndpointDescriptionAuthPOST/api/safety/chatClaude Q&A with PubChem context + inventory contextJWTGET/api/safety/chemical/:nameFetch or cache chemical SDS data from PubChemJWTGET/api/safety/incompatibleCheck incompatibility between two chemicalsJWTGET/api/safety/risk-registerReturn all lab chemicals with risk assessmentJWTPUT/api/safety/risk-register/:idMark chemical risk as reviewedJWT (Lab Head+)POST/api/safety/risk-register/exportGenerate and return PDF risk registerJWT (Lab Head+)
+D1 Tables Used
+• chemical_safety — chemical hazard data (populated from PubChem API, cached)
+• chemical_safety_chats — all Q&A pairs logged for compliance
+• chemical_incompatibilities — pre-loaded + user-added incompatible pairs
+• chemical_risk_register — per-chemical risk assessment linked to inventory
+• inventory_items — injected into prompt as lab context
+
+
+
+9. Phase 5 — Module 7: Unified Analytics Dashboard
+
+
+9.1 Analytics Page
+Route: /dashboard/analytics  |  Access: Lab Head + Admin only
+
+Layout
+Date range pickerTop right. Presets: This Week / This Month / Last 3 Months / Custom. All charts respond to selection.Stat summary row6 metric cards: Experiments Started, Experiments Completed, Anomalies Detected, Protocols Uploaded, Papers Summarized, Reagents Reordered.Chart row 1Left: Experiment Activity line chart (experiments started vs. completed over time). Right: Anomaly trend bar chart (anomalies per week by measurement type).Chart row 2Left: Inventory burn-down chart (quantity over time for top 5 most-used reagents). Right: Module usage bar chart (which modules used most per day).AI digest cardFull-width. AI-generated plain-English weekly summary of lab activity. Regenerate button. Date of last generation shown.Export sectionDownload full lab report as PDF. Select date range. Includes all charts + AI digest + experiment list.
+Features
+• All charts built with Recharts (React-native, no external CDN required). Data fetched from D1 aggregation queries.
+• Date range filter: all API calls include from/to params. Charts re-render on filter change.
+• Experiment activity: COUNT experiments grouped by start_date, compared to completed COUNT. Identify productivity trends.
+• Anomaly trend: COUNT is_anomaly = 1 entries grouped by week + measurement_type. Spot recurring anomaly patterns.
+• Inventory burn-down: for top 5 items by usage volume, plot cumulative quantity_used per day vs. starting quantity. Extrapolate to depletion date.
+• Module usage: COUNT activity_log entries grouped by module + date. Bar chart shows platform adoption pattern.
+• AI weekly digest: every Monday, Claude generates a 3-paragraph plain-English summary of the past week. Saved to lab_reports table. Shown in full on this page.
+• PDF export: Cloudflare Worker generates PDF using HTML ? PDF pipeline. Includes all visible charts + AI digest + appendix of experiment entries.
+• Dashboard preferences: each user can toggle which widgets are visible and set auto-refresh interval. Saved to dashboard_preferences table.
+
+Backend API
+MethodEndpointDescriptionAuthGET/api/analytics/statsAggregated metric counts for date rangeJWT (LH+)GET/api/analytics/experimentsExperiment activity time series dataJWT (LH+)GET/api/analytics/anomaliesAnomaly trend grouped by week + typeJWT (LH+)GET/api/analytics/inventoryBurn-down data for top N itemsJWT (LH+)GET/api/analytics/module-usageActivity log counts grouped by module + dateJWT (LH+)GET/api/analytics/digestLatest AI weekly digestJWT (LH+)POST/api/analytics/digest/generateTrigger AI digest generationJWT (Admin)POST/api/analytics/exportGenerate and return full lab report PDFJWT (LH+)GET/api/analytics/preferencesGet user dashboard preferencesJWTPUT/api/analytics/preferencesUpdate dashboard widget settingsJWT
+D1 Tables Used
+• dashboard_metrics — time-series metric snapshots stored nightly by Python worker
+• lab_reports — stored AI digest text + PDF URL
+• dashboard_preferences — per-user widget layout and settings
+• experiments, experiment_entries, inventory_usage_log, activity_log — all queried for chart data
+
+
+
+10. User Profile & Settings
+
+
+10.1 Profile Page
+Route: /dashboard/profile  |  Access: All roles (own profile)
+
+Layout
+Avatar sectionLarge avatar circle with initials (or uploaded photo). 'Change photo' button.Details formEditable: Full name, Department, Institution. Read-only: Email, Role (admin-only to change role).Password sectionChange password: current password, new password, confirm new password. Strength meter shown.Activity sectionLast 10 actions by this user from activity_log. Module icon + action + time.Sessions sectionActive sessions list: device, IP, last active. 'Revoke' button per session. 'Revoke all others' button.
+Backend API
+MethodEndpointDescriptionAuthGET/api/user/profileGet current user profileJWTPUT/api/user/profileUpdate name, department, institutionJWTPUT/api/user/passwordChange password (requires current password)JWTGET/api/user/sessionsList active sessionsJWTDELETE/api/user/sessions/:idRevoke a specific sessionJWTDELETE/api/user/sessionsRevoke all sessions except currentJWT
+10.2 Admin Panel
+Route: /dashboard/admin  |  Access: Admin only
+
+Layout
+Users tableAll registered users. Columns: name, email, role, department, last login, status. Actions: Change Role, Deactivate, Delete.Invite codesGenerate and manage admin invite codes. Each code: one-time use, 24hr expiry.System healthD1 row counts per table. API health status. Last nightly worker run time.
+Backend API
+MethodEndpointDescriptionAuthGET/api/admin/usersList all usersJWT (Admin)PUT/api/admin/users/:id/roleChange user roleJWT (Admin)PUT/api/admin/users/:id/statusActivate or deactivate userJWT (Admin)POST/api/admin/inviteGenerate admin invite codeJWT (Admin)GET/api/admin/healthSystem health statsJWT (Admin)
+
+
+11. Complete Cloudflare D1 Table Reference
+
+All 36 tables listed below with every column, type, and constraint. All IDs are TEXT (UUID v4). All timestamps are TEXT (ISO 8601). Foreign keys use ON DELETE CASCADE unless noted.
+
+11.1 Phase 1 Tables
+Table: users
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4 — unique user identifiernameTEXTNOT NULLDisplay nameemailTEXTUNIQUE NOT NULLLogin emailpassword_hashTEXTNOT NULLbcrypt hashroleTEXTCHECK enumRESEARCHER | LAB_HEAD | ADMINdepartmentTEXTnullableUser's departmentinstitutionTEXTnullableUniversity or institute nameavatar_urlTEXTnullableCloudflare R2 pathis_activeINTEGERDEFAULT 10 = deactivated accountcreated_atTEXTDEFAULT NOWAccount creation timestamplast_loginTEXTnullableUpdated on every successful loginupdated_atTEXTDEFAULT NOWUpdated on profile edit
+Table: sessions
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4user_idTEXTFK?usersOwner of this sessiontokenTEXTUNIQUE NOT NULLHashed JWT tokenexpires_atTEXTNOT NULLExpiry datetimeip_addressTEXTnullableClient IP at login timeuser_agentTEXTnullableBrowser/device stringcreated_atTEXTDEFAULT NOWLogin timestamp
+Table: activity_log
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4user_idTEXTFK?usersWho performed the actionactionTEXTNOT NULLe.g. uploaded_protocol, started_experimentmoduleTEXTNOT NULLprotocol | paper | inventory | experiment | primer | safety | analyticsmetadataTEXTnullableJSON: additional context (file name, protocol ID, etc.)created_atTEXTDEFAULT NOWWhen action occurred
+Table: notifications
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4user_idTEXTFK?usersRecipienttypeTEXTCHECK enumALERT | INFO | WARNINGtitleTEXTNOT NULLShort notification headingmessageTEXTNOT NULLFull notification bodylinkTEXTnullableInternal URL to navigate to on clickis_readINTEGERDEFAULT 00 = unread, 1 = readcreated_atTEXTDEFAULT NOWCreation timestamp
+11.2 Phase 2 Tables — Protocol Assistant
+Table: protocols
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4nameTEXTNOT NULLProtocol display namedescriptionTEXTnullableOptional descriptionfile_nameTEXTNOT NULLOriginal PDF filenamefile_sizeINTEGERnullableSize in bytesfile_urlTEXTnullableCloudflare R2 storage pathversionTEXTDEFAULT 1.0Semantic version stringstatusTEXTCHECK enumPROCESSING | READY | ERRORchunk_countINTEGERDEFAULT 0Number of vector chunks stored in pgvectortagsTEXTnullableComma-separated tagsuploaded_byTEXTFK?usersUploader user IDcreated_atTEXTDEFAULT NOWUpload timestampupdated_atTEXTDEFAULT NOWLast modified timestamp
+Table: protocol_versions
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4protocol_idTEXTFK?protocolsParent protocolversionTEXTNOT NULLVersion string (e.g. 1.1)file_nameTEXTNOT NULLFilename of this version's PDFfile_urlTEXTnullableR2 path for this versionuploaded_byTEXTFK?usersWho uploaded this versioncreated_atTEXTDEFAULT NOWUpload timestamp
+Table: protocol_chat_sessions
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4protocol_idTEXTFK?protocols nullableNULL = search all protocolsuser_idTEXTFK?usersSession ownertitleTEXTDEFAULT New conv.Auto-set from first messagecreated_atTEXTDEFAULT NOWSession startupdated_atTEXTDEFAULT NOWLast message time
+Table: chat_messages
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4session_idTEXTFK?protocol_chat_sessionsParent sessionroleTEXTCHECK enumUSER | ASSISTANTcontentTEXTNOT NULLMessage textsourcesTEXTnullableJSON array: [{protocol_name, page, score, content}]created_atTEXTDEFAULT NOWMessage timestamp
+11.3 Phase 2 Tables — Paper Summarizer
+Table: research_papers
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4titleTEXTNOT NULLPaper titledoiTEXTUNIQUE nullablee.g. 10.1038/nature12345pmidTEXTUNIQUE nullablePubMed IDpubmed_urlTEXTnullableDirect PubMed linkfile_urlTEXTnullableR2 path if PDF uploadedabstractTEXTnullableFull abstract textauthorsTEXTnullableComma-separated author listpublication_dateTEXTnullableYYYY-MM-DDjournalTEXTnullableJournal/conference nameuploaded_byTEXTFK?usersWho added this papercreated_atTEXTDEFAULT NOWWhen added
+Table: paper_summaries
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4paper_idTEXTFK?research_papersParent papersummary_textTEXTNOT NULL5-line plain-English summarykey_findingsTEXTnullableJSON array of finding stringsmethodologyTEXTnullableHow the study was conductedlimitationsTEXTnullableStudy limitationsresearch_gapsTEXTnullableWhat has not been studiedsuggested_next_experimentTEXTnullableAI-suggested follow-up experimentgenerated_atTEXTDEFAULT NOWWhen summary was generated
+Table: paper_library
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4paper_idTEXTFK?research_papersSaved paperuser_idTEXTFK?usersWho saved ittagsTEXTnullableComma-separated user tagsnotesTEXTnullableUser personal notesstarredINTEGERDEFAULT 01 = starred/bookmarkedcreated_atTEXTDEFAULT NOWWhen saved
+
+
+11.4 Phase 3 Tables — Inventory Tracker
+Table: inventory_items
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4nameTEXTNOT NULLChemical or reagent namecategoryTEXTCHECK enumREAGENT | CHEMICAL | KIT | CONSUMABLE | EQUIPMENTcatalog_numberTEXTnullableSupplier catalog IDsupplierTEXTnullableSupplier company namesupplier_urlTEXTnullableSupplier product page URLquantityREALNOT NULLCurrent stock quantityunitTEXTNOT NULLg | ml | mg | ?L | units | countlocationTEXTnullablee.g. Shelf A3, Freezer -20°Cexpiry_dateTEXTnullableYYYY-MM-DD expirystorage_conditionTEXTnullableRoom temp | -20°C | 4°C | Darksafety_hazardsTEXTnullableComma-sep: flammable, toxic, corrosiveincompatible_withTEXTnullableJSON array of item IDs to warn againstcostREALnullableCost per unit in ?created_byTEXTFK?usersWho added the itemcreated_atTEXTDEFAULT NOWWhen addedupdated_atTEXTDEFAULT NOWLast quantity update
+Table: inventory_usage_log
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4item_idTEXTFK?inventory_itemsWhich item was usedquantity_usedREALNOT NULLAmount used in item's unitused_byTEXTFK?usersWho used itexperiment_idTEXTFK?experiments nullableLinked experiment if anynotesTEXTnullableReason or contextused_atTEXTDEFAULT NOWUsage timestamp
+Table: reorder_predictions
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4item_idTEXTFK?inventory_itemsWhich itemcurrent_quantityREALNOT NULLQuantity at prediction timedaily_consumptionREALnullableAvg units used per day (ML computed)days_until_emptyINTEGERnullablePredicted days until stock = 0reorder_at_quantityREALnullableTrigger reorder when stock drops to thisrecommended_quantityREALnullableSuggested order quantitypredicted_atTEXTDEFAULT NOWWhen prediction was computed
+11.5 Phase 3 Tables — Experiment Logger
+Table: experiments
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4nameTEXTNOT NULLExperiment display namedescriptionTEXTnullablePurpose and objectivestypeTEXTNOT NULLPCR | Cell_Culture | Western_Blot | Transformation | etc.protocol_idTEXTFK?protocols SET NULLLinked protocol documentstatusTEXTCHECK enumACTIVE | PAUSED | COMPLETED | FAILEDstart_dateTEXTNOT NULLYYYY-MM-DDexpected_end_dateTEXTnullableTarget completion dateactual_end_dateTEXTnullableSet when status = COMPLETED or FAILEDteam_membersTEXTnullableJSON array of user IDscreated_byTEXTFK?usersLead researchercreated_atTEXTDEFAULT NOWCreation timestampupdated_atTEXTDEFAULT NOWLast status change
+Table: experiment_entries
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4experiment_idTEXTFK?experimentsParent experimententry_dateTEXTNOT NULLYYYY-MM-DDentry_timeTEXTNOT NULLHH:MM:SSmeasurement_typeTEXTNOT NULLOD600 | pH | yield | temperature | microscopy | notesmeasurement_valueREALnullableNumeric reading (null for note-type entries)unitTEXTnullablee.g. nm, pH unit, mg/mLnotesTEXTnullableFree-text observationis_anomalyINTEGERDEFAULT 01 = flagged as anomaly by Python workeranomaly_reasonTEXTnullableAI-generated explanation of anomalyrecorded_byTEXTFK?usersWho logged this entrycreated_atTEXTDEFAULT NOWLog timestamp
+Table: experiment_files
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4experiment_idTEXTFK?experimentsParent experimentfile_typeTEXTNOT NULLimage | csv | documentfile_nameTEXTNOT NULLOriginal filenamefile_urlTEXTNOT NULLCloudflare R2 pathfile_sizeINTEGERnullableSize in bytesuploaded_byTEXTFK?usersUploaderuploaded_atTEXTDEFAULT NOWUpload timestamp
+Table: experiment_baselines
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4experiment_idTEXTFK?experimentsParent experimentmeasurement_typeTEXTNOT NULLSame as experiment_entries.measurement_typemean_valueREALnullableRunning mean of all entries of this typestd_devREALnullableStandard deviationmin_valueREALnullableMinimum observed valuemax_valueREALnullableMaximum observed valuesample_sizeINTEGERnullableNumber of entries used to compute baselinecalculated_atTEXTDEFAULT NOWLast recalculation timestamp
+
+
+11.6 Phase 4 Tables — Primer Designer & Safety Chatbot
+Table: primer_designs
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4experiment_idTEXTFK?experiments SET NULLLinked experimentgene_nameTEXTnullableGene symbol e.g. BRCA1gene_sequenceTEXTNOT NULLRaw FASTA sequence inputforward_primerTEXTNOT NULL5'?3' forward primer sequencereverse_primerTEXTNOT NULL5'?3' reverse primer sequenceamplicon_sizeINTEGERnullableExpected PCR product size in bptm_forwardREALnullableMelting temperature of forward primer (°C)tm_reverseREALnullableMelting temperature of reverse primer (°C)gc_forwardREALnullableGC content % of forward primergc_reverseREALnullableGC content % of reverse primerquality_scoreREALnullableComposite quality score 0–100off_target_hitsINTEGERDEFAULT 0Number of BLAST off-target matchesnotesTEXTnullableUser notes or AI explanationdesigned_byTEXTFK?usersWho ran the designcreated_atTEXTDEFAULT NOWDesign timestamp
+Table: chemical_safety
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4chemical_nameTEXTNOT NULLIUPAC or common namecas_numberTEXTUNIQUE nullableCAS Registry Numberpubchem_cidTEXTnullablePubChem Compound IDmolecular_formulaTEXTnullablee.g. H2SO4molecular_weightREALnullableg/molhazard_statementsTEXTnullableJSON array of H-codes (H220, H301…)ghs_hazard_classTEXTnullableJSON: {class: 'Flammable', category: 1}ghs_pictogramsTEXTnullableJSON array of pictogram codesphysical_stateTEXTnullableSolid | Liquid | Gasstorage_conditionsTEXTnullableJSON array of storage rulesppe_requiredTEXTnullableJSON array: gloves | goggles | lab coat | maskfirst_aidTEXTnullableJSON: {skin: '...', eyes: '...', ingestion: '...'}spill_responseTEXTnullableStep-by-step spill procedurefire_fightingTEXTnullableExtinguisher type and proceduresds_urlTEXTnullableLink to full Safety Data Sheetlast_updatedTEXTnullableWhen PubChem data was last refreshed
+Table: chemical_safety_chats
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4user_idTEXTFK?usersWho askedquestionTEXTNOT NULLUser question textanswerTEXTNOT NULLAI answer textchemicals_referencedTEXTnullableJSON array of chemical_safety IDs mentionedcreated_atTEXTDEFAULT NOWConversation timestamp
+Table: chemical_incompatibilities
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4chemical_a_idTEXTFK?chemical_safetyFirst chemicalchemical_b_idTEXTFK?chemical_safetySecond chemicalincompatibility_reasonTEXTnullableWhy they cannot be mixed/stored togetherhazard_levelTEXTCHECK enumLOW | MEDIUM | HIGH | SEVERE
+Table: chemical_risk_register
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4chemical_idTEXTFK?chemical_safetyChemical being assessedcurrent_quantity_in_labREALnullableCurrent stock in labunitTEXTnullableUnit of quantitylocationTEXTnullableWhere it is stored in labrisk_assessmentTEXTnullableJSON: {exposure_risk, environmental_risk, fire_risk}mitigation_measuresTEXTnullableJSON array of control measureslast_reviewedTEXTnullableDate of last lab head reviewreviewed_byTEXTFK?users nullableLab head who reviewed
+11.7 Phase 5 Tables — Analytics Dashboard
+Table: dashboard_metrics
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4metric_nameTEXTNOT NULLactive_experiments | reagents_expiring | anomalies_detected | papers_summarizedmetric_valueINTEGERnullableCount or numeric metric valuemetric_dateTEXTNOT NULLYYYY-MM-DD — one row per metric per daycreated_atTEXTDEFAULT NOWRow creation timestamp
+Table: lab_reports
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4report_typeTEXTNOT NULLweekly | monthlygenerated_byTEXTFK?usersUser or system that triggered generationreport_dateTEXTNOT NULLReport period start datesummary_textTEXTnullableAI plain-English lab activity summarymetricsTEXTnullableJSON snapshot of key metrics for this periodpdf_urlTEXTnullableCloudflare R2 path to generated PDFcreated_atTEXTDEFAULT NOWGeneration timestamp
+Table: dashboard_preferences
+ColumnTypeConstraintDescriptionidTEXTPRIMARY KEYUUID v4user_idTEXTUNIQUE FK?usersOne row per userlayoutTEXTnullableJSON: widget positions and sizesvisible_widgetsTEXTnullableJSON array of enabled widget IDsthemeTEXTCHECK enumLIGHT | DARKauto_refresh_enabledINTEGERDEFAULT 10 = manual refresh onlyrefresh_interval_secondsINTEGERDEFAULT 30How often dashboard polls for updatesupdated_atTEXTDEFAULT NOWLast preference save
+
+
+
+12. Role Permissions Matrix
+
+
+Feature / ActionResearcherLab HeadAdminView all modules???Upload protocols???Chat with Protocol Assistant???Add inventory items???Log inventory usage???Create experiments???Log experiment entries???Change experiment status???Design primers???View safety chatbot???Mark chemical risk as reviewed???View analytics dashboard???Export lab reports???Manage user roles???Generate admin invite codes???View system health???Delete any data???
+
+
+13. 16-Week Build Timeline
+
+
+Week(s)PhaseDeliverables1Phase 1Project setup: Next.js, Tailwind, Cloudflare D1, Drizzle ORM, schema migration2Phase 1Auth system: Login, Register, JWT middleware, route protection3Phase 1Dashboard shell: Sidebar, Topbar, Home page, Notifications, Profile4–5Phase 2Module 1: Protocol PDF upload, Python RAG service, pgvector, chat UI6–7Phase 2Module 2: PubMed/DOI integration, AI summarizer, library, paper-experiment links8–9Phase 3Module 3: Inventory CRUD, usage logging, expiry alerts, CSV import, reorder ML10–11Phase 3Module 4: Experiment logger, entry form, anomaly detection, charts, AI summary12–13Phase 4Module 5: Primer design UI, Biopython service, BLAST, quality scoring13–14Phase 4Module 6: Safety chatbot, PubChem integration, GHS panel, risk register15Phase 5Module 7: Analytics dashboard, Recharts, AI digest, PDF export16Phase 5Polish: mobile responsive, performance, Cloudflare Pages deployment, user testing at NIT Jalandhar
+BioLab AI — Product Specification0Confidential
+
+NIT Jalandhar · B.Tech Biotechnology Major Project0Page 1 of 2
+
