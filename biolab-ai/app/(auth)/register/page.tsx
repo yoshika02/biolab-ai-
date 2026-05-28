@@ -43,7 +43,7 @@ export default function RegisterPage() {
         setLoading(true);
         setError(null);
 
-        if (!/^[A-Za-z ]+$/.test(name.trim())) {
+        if (!/^[A-Za-z. ]+$/.test(name.trim())) {
             setError("Name can contain alphabets and spaces only.");
             setLoading(false);
             return;

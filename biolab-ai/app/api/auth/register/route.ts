@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
         const { name, email, phone, department, institution, role, password } = await request.json();
         const normalizedRole = typeof role === "string" ? role.toLowerCase() : "student";
 
-        if (typeof name !== "string" || !/^[A-Za-z ]+$/.test(name.trim())) {
+        if (typeof name !== "string" || !/^[A-Za-z. ]+$/.test(name.trim())) {
             return NextResponse.json({ error: "Name can contain alphabets and spaces only." }, { status: 400 });
         }
 
