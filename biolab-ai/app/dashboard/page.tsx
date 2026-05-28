@@ -93,6 +93,30 @@ export default function DashboardHome() {
     const now = new Date();
 
     useEffect(() => {
+        // Live dynamic local storage count reader
+        const updateCounts = () => {
+            const currentCounts: Record<string, number> = {};
+            storageKeys.forEach(item => {
+                if (typeof window !== "undefined") {
+                    try {
+                        const val = window.localStorage.getItem(item.dbKey);
+                        if (val) {
+                            const parsed = JSON.parse(val);
+                            currentCounts[item.key] = Array.isArray(parsed) ? parsed.length : 0;
+                        } else {
+                            // Fallback seeds count if not yet initialized in localStorage
+                            if (item.key.includes("protocol")) currentCounts[item.key] = 4;
+                            else if (item.key.includes("paper")) currentCounts[item.key] = 7;
+                            else currentCounts[item.key] = 0;
+                        }
+                    } catch {
+                        currentCounts[item.key] = 0;
+                    }
+                }
+            });
+            setCounts(currentCounts);
+        };
+
         // Fetch dynamic logged-in user name
         fetch("/api/user")
             .then(res => {
@@ -187,32 +211,10 @@ export default function DashboardHome() {
                     updateCounts();
                 }
             })
-            .catch(() => {});
-    }, []);
-
-        // Live dynamic local storage count reader
-        const updateCounts = () => {
-            const currentCounts: Record<string, number> = {};
-            storageKeys.forEach(item => {
-                if (typeof window !== "undefined") {
-                    try {
-                        const val = window.localStorage.getItem(item.dbKey);
-                        if (val) {
-                            const parsed = JSON.parse(val);
-                            currentCounts[item.key] = Array.isArray(parsed) ? parsed.length : 0;
-                        } else {
-                            // Fallback seeds count if not yet initialized in localStorage
-                            if (item.key.includes("protocol")) currentCounts[item.key] = 4;
-                            else if (item.key.includes("paper")) currentCounts[item.key] = 7;
-                            else currentCounts[item.key] = 0;
-                        }
-                    } catch {
-                        currentCounts[item.key] = 0;
-                    }
-                }
+            .catch(() => {
+                // Fetch failed or not authenticated, still update counters!
+                updateCounts();
             });
-            setCounts(currentCounts);
-        };
 
         updateCounts();
         const interval = setInterval(updateCounts, 5000);
