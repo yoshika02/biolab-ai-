@@ -198,11 +198,19 @@ Be detailed, accurate, and helpful for a lab researcher.`;
             </div>
 
             {/* Tab Toggle */}
-            <div className="flex gap-1 rounded-2xl bg-slate-900 border border-slate-800 p-1 w-fit">
+            <div className="flex gap-2 w-fit">
                 {(['search', 'upload'] as const).map((t) => (
                     <button key={t} onClick={() => setTab(t)}
-                        className={`px-5 py-2 text-sm font-semibold rounded-xl transition capitalize ${tab === t ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>
-                        {t === 'search' ? '🔍 Search Papers' : '📄 Upload & Summarize'}
+                        className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition flex items-center gap-2 border ${
+                            tab === t
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20'
+                                : 'bg-slate-800/60 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-600'
+                        }`}>
+                        {t === 'search' ? (
+                            <><span className="text-base">🔍</span><span>Search Papers</span></>
+                        ) : (
+                            <><span className="text-base">📄</span><span>Upload &amp; Summarize</span></>
+                        )}
                     </button>
                 ))}
             </div>

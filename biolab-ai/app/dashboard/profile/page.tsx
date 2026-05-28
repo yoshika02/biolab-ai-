@@ -4,13 +4,10 @@ import { useState, useEffect } from "react";
 import {
     User,
     Shield,
-    Key,
     Database,
     CheckCircle2,
     RefreshCw,
     Download,
-    Eye,
-    EyeOff,
     Award,
     Mail,
     MapPin,
@@ -20,15 +17,11 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import {
-    getStoredOpenRouterKey,
-    setStoredOpenRouterKey,
     getStoredLlamaModel,
     setStoredLlamaModel
 } from "@/lib/gemini";
 
 export default function ProfilePage() {
-    const [apiKey, setApiKey] = useState("");
-    const [showKey, setShowKey] = useState(false);
     const [selectedModel, setSelectedModel] = useState("meta-llama/llama-3.3-70b-instruct");
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -181,7 +174,7 @@ export default function ProfilePage() {
                     {/* AI Assistant configuration panel */}
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 shadow-lg backdrop-blur-md">
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                            <Key className="h-4.5 w-4.5 text-teal-400" />
+                            <Sliders className="h-4.5 w-4.5 text-teal-400" />
                             <span>AI Assistant Settings</span>
                         </h3>
 

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +12,66 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== LIGHT / BEIGE THEME ===== */
+html.theme-light {
+  --background: #FAF7F2;
+  --foreground: #1e293b;
+}
+
+html.theme-light body {
+  background-color: #FAF7F2;
+  color: #1e293b;
+}
+
+/* Main dashboard content area */
+html.theme-light main,
+html.theme-light [class*="bg-slate-950"],
+html.theme-light [class*="bg-slate-900"] {
+  background-color: #FAF7F2 !important;
+}
+
+/* Cards */
+html.theme-light .rounded-3xl.border.border-slate-800,
+html.theme-light .rounded-3xl.border.border-slate-700 {
+  background-color: #FFFFFF !important;
+  border-color: #E2D9C8 !important;
+}
+
+/* Text overrides */
+html.theme-light .text-white { color: #1e293b !important; }
+html.theme-light .text-slate-100 { color: #1e293b !important; }
+html.theme-light .text-slate-200 { color: #334155 !important; }
+html.theme-light .text-slate-300 { color: #475569 !important; }
+html.theme-light .text-slate-400 { color: #64748b !important; }
+html.theme-light .text-slate-500 { color: #94a3b8 !important; }
+
+/* Dashboard layout bg */
+html.theme-light .min-h-screen { background-color: #FAF7F2 !important; }
+
+/* Input fields */
+html.theme-light input,
+html.theme-light select,
+html.theme-light textarea {
+  background-color: #FFFFFF !important;
+  border-color: #D6CCB8 !important;
+  color: #1e293b !important;
+}
+
+/* Topbar */
+html.theme-light .sticky.top-0 {
+  background-color: rgba(250, 247, 242, 0.9) !important;
+  border-color: #E2D9C8 !important;
+}
+
+/* Dark theme default */
+html.theme-dark body {
+  background-color: #0a0a0a;
+  color: #ededed;
 }

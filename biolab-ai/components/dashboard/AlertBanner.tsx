@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, X, ShieldAlert } from "lucide-react";
 import { api } from "@/lib/api";
 
-const alerts = [
+const SEEDED_ALERTS = [
     {
         id: "la1",
         title: "Acid Storage Incompatibility",
@@ -19,6 +19,16 @@ const alerts = [
 
 export function AlertBanner() {
     const [dismissed, setDismissed] = useState<string[]>([]);
+    const [alerts, setAlerts] = useState<typeof SEEDED_ALERTS>([]);
+
+    useEffect(() => {
+        // Only show alerts if user has the seeded lab data (i.e., Yoshika's account)
+        const hasSeededData = typeof window !== "undefined" &&
+            window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+        if (hasSeededData) {
+            setAlerts(SEEDED_ALERTS);
+        }
+    }, []);
 
     const handleDismiss = async (alertId: string) => {
         setDismissed((prev) => [...prev, alertId]);

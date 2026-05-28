@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { callGemini, getStoredOpenRouterKey } from "@/lib/gemini";
+import { callGemini } from "@/lib/gemini";
 
 interface InventoryItem {
     id: string;
@@ -155,10 +155,11 @@ export default function InventoryPage() {
             try {
                 setInventory(JSON.parse(storedInv));
             } catch {
-                setInventory(DEFAULT_INVENTORY);
+                setInventory([]);
             }
         } else {
-            setInventory(DEFAULT_INVENTORY);
+            // New users start with a blank inventory — no default data
+            setInventory([]);
         }
 
         // Fetch experiments for dropdown
@@ -399,11 +400,7 @@ Format your response beautiful with ## headings, bold markers, and clean bullet 
             setAiAuditResult(res);
         } catch (err) {
             console.error("AI Safety audit failed:", err);
-            if (err instanceof Error && err.message === "API_KEY_MISSING") {
-                setAuditError("API Key missing! Please configure your OpenRouter key in the Settings (top-right corner).");
-            } else {
-                setAuditError(err instanceof Error ? err.message : "Failed to run safety audit.");
-            }
+            setAuditError(err instanceof Error ? err.message : "Failed to run safety audit.");
         } finally {
             setIsAuditing(false);
         }
@@ -435,11 +432,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
             setAiPredictResult(res);
         } catch (err) {
             console.error("AI prediction failed:", err);
-            if (err instanceof Error && err.message === "API_KEY_MISSING") {
-                setPredictError("API Key missing! Please configure your OpenRouter key in the Settings (top-right corner).");
-            } else {
-                setPredictError(err instanceof Error ? err.message : "Failed to generate AI predictions.");
-            }
+            setPredictError(err instanceof Error ? err.message : "Failed to generate AI predictions.");
         } finally {
             setIsPredicting(false);
         }
@@ -543,8 +536,15 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                             <tbody>
                                 {filteredInventory.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-slate-500 text-sm">
-                                            No materials found matching criteria.
+                                        <td colSpan={6} className="p-10 text-center">
+                                            {inventory.length === 0 ? (
+                                                <div className="space-y-2">
+                                                    <p className="text-slate-400 font-semibold text-sm">Your inventory is empty</p>
+                                                    <p className="text-slate-500 text-xs">Click <span className="text-teal-400 font-bold">+ Add Reagent</span> to catalogue your first chemical or reagent.</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-slate-500 text-sm">No materials found matching criteria.</p>
+                                            )}
                                         </td>
                                     </tr>
                                 ) : (

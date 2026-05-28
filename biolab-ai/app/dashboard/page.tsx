@@ -90,6 +90,7 @@ const storageKeys = [
 export default function DashboardHome() {
     const [counts, setCounts] = useState<Record<string, number>>({});
     const [userName, setUserName] = useState("Researcher");
+    const [isNewUser, setIsNewUser] = useState(true);
     const now = new Date();
 
     useEffect(() => {
@@ -104,10 +105,8 @@ export default function DashboardHome() {
                             const parsed = JSON.parse(val);
                             currentCounts[item.key] = Array.isArray(parsed) ? parsed.length : 0;
                         } else {
-                            // Fallback seeds count if not yet initialized in localStorage
-                            if (item.key.includes("protocol")) currentCounts[item.key] = 4;
-                            else if (item.key.includes("paper")) currentCounts[item.key] = 7;
-                            else currentCounts[item.key] = 0;
+                            // No data in storage — return 0, not fake fallbacks
+                            currentCounts[item.key] = 0;
                         }
                     } catch {
                         currentCounts[item.key] = 0;
@@ -126,6 +125,11 @@ export default function DashboardHome() {
             .then(data => {
                 if (data?.user?.name) {
                     setUserName(data.user.name);
+
+                    // Check if this is a seeded/returning account
+                    const hasSeeded = typeof window !== 'undefined' &&
+                        window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+                    setIsNewUser(!hasSeeded);
 
                     // 1. Initializing seed data for our laboratory ONLY for Yoshika account!
                     if (data.user.name.toLowerCase().includes("yoshika") && typeof window !== "undefined") {
@@ -236,9 +240,14 @@ export default function DashboardHome() {
                         <p className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-1">
                             {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </p>
-                        <h2 className="text-3xl font-bold text-white">Welcome Back, {userName} 👋</h2>
+                        <h2 className="text-3xl font-bold text-white">
+                            {isNewUser ? 'Welcome, ' : 'Welcome Back, '}{userName} 👋
+                        </h2>
                         <p className="mt-2 text-slate-300 text-sm">
-                            Molecular command console is online. <span className="font-semibold text-teal-300">{totalExperiments} experiments</span> are currently logged, with <span className="font-semibold text-teal-300">{totalReagents} chemical materials</span> cataloged.
+                            {isNewUser
+                                ? <span>Your laboratory workspace is ready. <span className="font-semibold text-teal-300">Start by logging your first experiment</span> or adding reagents to the inventory.</span>
+                                : <><span className="font-semibold text-teal-300">{totalExperiments} experiments</span> are currently logged, with <span className="font-semibold text-teal-300">{totalReagents} chemical materials</span> cataloged.</>
+                            }
                         </p>
                     </div>
                     <Link

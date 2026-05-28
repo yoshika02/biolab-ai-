@@ -37,12 +37,8 @@ export function Topbar() {
 
     const title = titleMap[pathname ?? "/dashboard"] ?? "Dashboard Hub";
 
-    // Standard static/fetched notifications list
-    const [notifications, setNotifications] = useState([
-        { id: "1", type: "alert", title: "Acid Proximity Warning", message: "Nitric Acid stored near flammable Ethanol in Cabinet A." },
-        { id: "2", type: "info", title: "CRISPR Run Log", message: "Crispr BRCA1 experiment was updated to Analysis stage." },
-        { id: "3", type: "warning", title: "Reagent Depletion", message: "Concentrated Nitric Acid stock level is down to 20%." },
-    ]);
+    // Standard static/fetched notifications list — only shown for accounts with seeded lab data
+    const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; message: string }[]>([]);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -64,6 +60,17 @@ export function Topbar() {
             }
         };
         fetchUser();
+
+        // Load notifications only for seeded accounts (e.g., Yoshika)
+        const hasSeededData = typeof window !== "undefined" &&
+            window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+        if (hasSeededData) {
+            setNotifications([
+                { id: "1", type: "alert", title: "Acid Proximity Warning", message: "Nitric Acid stored near flammable Ethanol in Cabinet A." },
+                { id: "2", type: "info", title: "CRISPR Run Log", message: "Crispr BRCA1 experiment was updated to Analysis stage." },
+                { id: "3", type: "warning", title: "Reagent Depletion", message: "Concentrated Nitric Acid stock level is down to 20%." },
+            ]);
+        }
 
         // Close dropdowns on outside clicks
         const handleOutsideClick = (e: MouseEvent) => {
