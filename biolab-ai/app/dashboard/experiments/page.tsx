@@ -172,7 +172,7 @@ export default function ExperimentsPage() {
         e.preventDefault();
         if (!selectedExp) return;
 
-        const dayNumber = selectedExp.dailyLogs.length + 1;
+        const dayNumber = (selectedExp.dailyLogs ?? []).length + 1;
         const nowStr = new Date().toISOString().split("T")[0];
 
         const logEntry: DailyLog = {
@@ -187,7 +187,7 @@ export default function ExperimentsPage() {
 
         const updatedExps = experiments.map(exp => {
             if (exp.id === selectedExp.id) {
-                return { ...exp, dailyLogs: [...exp.dailyLogs, logEntry] };
+                return { ...exp, dailyLogs: [...(exp.dailyLogs ?? []), logEntry] };
             }
             return exp;
         });
@@ -236,7 +236,7 @@ export default function ExperimentsPage() {
         setAnomalyError("");
         setAiAnomalyResult("");
 
-        const logsStr = selectedExp.dailyLogs
+        const logsStr = (selectedExp.dailyLogs ?? [])
             .map(l => `- **Day ${l.dayNumber}** (Date: ${l.date}, OD600: ${l.od600}, pH: ${l.ph}, Yield: ${l.yieldPercent}%, Observation: ${l.notes})`)
             .join("\n");
 
@@ -277,7 +277,7 @@ Format with beautiful headings, bold bullet markers, and direct answers. Keep it
         setSummaryError("");
         setAiSummaryResult("");
 
-        const logsStr = selectedExp.dailyLogs
+        const logsStr = (selectedExp.dailyLogs ?? [])
             .map(l => `Day ${l.dayNumber} [OD600: ${l.od600}, pH: ${l.ph}, Yield: ${l.yieldPercent}%]: ${l.notes}`)
             .join("\n");
 
@@ -412,10 +412,10 @@ Format beautifully for inclusion in our lab documentation.`;
                                             </div>
                                         </div>
 
-                                        {exp.dailyLogs.length > 0 && (
+                                        {(exp.dailyLogs ?? []).length > 0 && (
                                             <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-800/60 text-[10px] text-slate-400">
                                                 <Activity className="h-3 w-3 text-amber-400" />
-                                                <span>{exp.dailyLogs.length} days logged</span>
+                                                <span>{(exp.dailyLogs ?? []).length} days logged</span>
                                             </div>
                                         )}
                                     </div>
@@ -517,14 +517,14 @@ Format beautifully for inclusion in our lab documentation.`;
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {selectedExp.dailyLogs.length === 0 ? (
+                                            {(selectedExp.dailyLogs ?? []).length === 0 ? (
                                                 <tr>
                                                     <td colSpan={6} className="p-6 text-center text-slate-500 text-xs">
                                                         No results logged yet. Click "Add Day Log" to record today's measurements.
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                selectedExp.dailyLogs.map(log => (
+                                                (selectedExp.dailyLogs ?? []).map(log => (
                                                     <tr key={log.id} className="border-b border-slate-800/40 text-slate-200 hover:bg-slate-800/5 text-xs transition">
                                                         <td className="p-3 font-bold text-amber-400">Day {log.dayNumber}</td>
                                                         <td className="p-3 text-slate-400 text-[11px]">{log.date}</td>
@@ -558,7 +558,7 @@ Format beautifully for inclusion in our lab documentation.`;
 
                                 <button
                                     onClick={runAIAnomalyDetector}
-                                    disabled={isDetecting || selectedExp.dailyLogs.length === 0}
+                                    disabled={isDetecting || (selectedExp.dailyLogs ?? []).length === 0}
                                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:from-rose-600 hover:to-red-700 shadow-md shadow-rose-500/10 disabled:opacity-50"
                                 >
                                     {isDetecting ? (
@@ -600,7 +600,7 @@ Format beautifully for inclusion in our lab documentation.`;
 
                                 <button
                                     onClick={runAIResearchSummary}
-                                    disabled={isSummarizing || selectedExp.dailyLogs.length === 0}
+                                    disabled={isSummarizing || (selectedExp.dailyLogs ?? []).length === 0}
                                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900/60 hover:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300 transition disabled:opacity-50"
                                 >
                                     {isSummarizing ? (
@@ -755,7 +755,7 @@ Format beautifully for inclusion in our lab documentation.`;
                         </button>
                         <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                             <Plus className="h-5 w-5 text-amber-400" />
-                            <span>Log Day {selectedExp.dailyLogs.length + 1} Metrics</span>
+                            <span>Log Day {(selectedExp.dailyLogs ?? []).length + 1} Metrics</span>
                         </h3>
                         <form onSubmit={handleAddLogSubmit} className="space-y-4 pt-2">
                             <div className="grid gap-3 grid-cols-3">
@@ -890,12 +890,12 @@ Format beautifully for inclusion in our lab documentation.`;
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {selectedExp.dailyLogs.length === 0 ? (
+                                    {(selectedExp.dailyLogs ?? []).length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="p-6 text-center text-slate-400 italic">No measurement logs registered yet.</td>
                                         </tr>
                                     ) : (
-                                        selectedExp.dailyLogs.map(log => (
+                                        (selectedExp.dailyLogs ?? []).map(log => (
                                             <tr key={log.id} className="border-b border-slate-200 hover:bg-slate-50 text-slate-800">
                                                 <td className="p-3 font-bold text-slate-900">Day {log.dayNumber}</td>
                                                 <td className="p-3 text-slate-500">{log.date}</td>

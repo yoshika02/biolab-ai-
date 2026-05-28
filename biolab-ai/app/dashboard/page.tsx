@@ -146,7 +146,17 @@ export default function DashboardHome() {
                     // 1. Initializing seed data for our laboratory ONLY for Yoshika account!
                     if (data.user.name.toLowerCase().includes("yoshika") && typeof window !== "undefined") {
                         const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed");
-                        if (!hasSeeded) {
+
+                        // Version check: if old experiment data used 'logs' instead of 'dailyLogs', force re-seed
+                        const storedExpsRaw = window.localStorage.getItem("biolab.experiments_premium");
+                        const needsReseed = storedExpsRaw ? (() => {
+                            try {
+                                const arr = JSON.parse(storedExpsRaw);
+                                return Array.isArray(arr) && arr.length > 0 && arr[0].logs !== undefined && arr[0].dailyLogs === undefined;
+                            } catch { return false; }
+                        })() : false;
+
+                        if (!hasSeeded || needsReseed) {
                             // Seeding Inventory
                             const mockInventory = [
                                 { id: "inv-1", item: "Ethanol (99% pure)", category: "Solvents", quantity: 2.5, unit: "L", location: "Cabinet B (Flammables)" },
@@ -161,29 +171,41 @@ export default function DashboardHome() {
                                 {
                                     id: "exp-1",
                                     name: "Growth curve study - Delta-12",
+                                    lead: "Dr. Yoshika Miyafuji",
+                                    date: new Date(Date.now() - 4 * 24 * 3600000).toISOString().split("T")[0],
                                     stage: "Running",
+                                    protocolLinked: "Bacterial Inoculation Protocol v3",
+                                    notes: "Evaluating biological stress response under pH variations across temperature gradients.",
                                     createdAt: new Date(Date.now() - 4 * 24 * 3600000).toISOString(),
-                                    logs: [
-                                        { date: "Day 1", od: 0.45, ph: 7.2, yield: 40, notes: "Inoculation successful. Normal growth rate." },
-                                        { date: "Day 2", od: 0.92, ph: 5.1, yield: 65, notes: "Sudden sharp pH crash to 5.1. Sour odor observed in bacterial culture." }
+                                    dailyLogs: [
+                                        { id: "log-1-1", dayNumber: 1, date: new Date(Date.now() - 4 * 24 * 3600000).toISOString().split("T")[0], od600: 0.45, ph: 7.2, yieldPercent: 40, notes: "Inoculation successful. Normal growth rate observed." },
+                                        { id: "log-1-2", dayNumber: 2, date: new Date(Date.now() - 3 * 24 * 3600000).toISOString().split("T")[0], od600: 0.92, ph: 5.1, yieldPercent: 65, notes: "⚠️ Sudden sharp pH crash to 5.1. Sour odor observed in bacterial culture. Possible contamination." }
                                     ]
                                 },
                                 {
                                     id: "exp-2",
                                     name: "BRCA1 CRISPR Knockout Verification",
+                                    lead: "Dr. Yoshika Miyafuji",
+                                    date: new Date(Date.now() - 8 * 24 * 3600000).toISOString().split("T")[0],
                                     stage: "Analysis",
+                                    protocolLinked: "CRISPR-Cas9 Gene Editing SOP v2",
+                                    notes: "Knockout efficiency analysis at BRCA1 loci using Cas9 and guide RNA delivery.",
                                     createdAt: new Date(Date.now() - 8 * 24 * 3600000).toISOString(),
-                                    logs: [
-                                        { date: "Day 1", od: 0.35, ph: 7.4, yield: 84, notes: "GEL electrophoresis verification. Amplification detected at 250bp target." }
+                                    dailyLogs: [
+                                        { id: "log-2-1", dayNumber: 1, date: new Date(Date.now() - 8 * 24 * 3600000).toISOString().split("T")[0], od600: 0.35, ph: 7.4, yieldPercent: 84, notes: "GEL electrophoresis verification complete. Amplification detected at 250bp target band." }
                                     ]
                                 },
                                 {
                                     id: "exp-3",
                                     name: "GFP Expressing E. coli Culture",
+                                    lead: "Dr. Yoshika Miyafuji",
+                                    date: new Date(Date.now() - 15 * 24 * 3600000).toISOString().split("T")[0],
                                     stage: "Completed",
+                                    protocolLinked: "GFP Fluorescence Expression Protocol",
+                                    notes: "High-yield GFP expression study in BL21 E. coli with IPTG induction.",
                                     createdAt: new Date(Date.now() - 15 * 24 * 3600000).toISOString(),
-                                    logs: [
-                                        { date: "Day 1", od: 0.88, ph: 7.0, yield: 92, notes: "Brilliant green fluorescence under UV light. High validation rate." }
+                                    dailyLogs: [
+                                        { id: "log-3-1", dayNumber: 1, date: new Date(Date.now() - 15 * 24 * 3600000).toISOString().split("T")[0], od600: 0.88, ph: 7.0, yieldPercent: 92, notes: "Brilliant green fluorescence confirmed under UV illumination. High expression validation rate." }
                                     ]
                                 }
                             ];
