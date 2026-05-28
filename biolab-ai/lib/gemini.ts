@@ -1,14 +1,31 @@
 // Client-side Gemini AI helper
 // Uses NEXT_PUBLIC_GEMINI_API_KEY which is baked into the bundle at build time.
-// This works reliably on Cloudflare Workers without process.env issues.
+// Fallback to window.localStorage to support 100% reliable direct-key configuration.
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
+export function getStoredApiKey(): string {
+    if (typeof window !== "undefined") {
+        return window.localStorage.getItem("biolab.gemini_key") || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+    }
+    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+}
+
+export function setStoredApiKey(key: string) {
+    if (typeof window !== "undefined") {
+        if (key.trim()) {
+            window.localStorage.setItem("biolab.gemini_key", key.trim());
+        } else {
+            window.localStorage.removeItem("biolab.gemini_key");
+        }
+    }
+}
+
 export async function callGemini(prompt: string): Promise<string> {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+    const apiKey = getStoredApiKey();
 
     if (!apiKey) {
-        throw new Error("AI service not configured. Add NEXT_PUBLIC_GEMINI_API_KEY to GitHub repository secrets.");
+        throw new Error("API_KEY_MISSING");
     }
 
     const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {

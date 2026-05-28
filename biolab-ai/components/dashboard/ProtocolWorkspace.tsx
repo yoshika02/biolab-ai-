@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type DragEvent } from "react";
 import {
     FileText, Plus, Sparkles, Trash2, Upload, X, CheckCircle2,
-    ListChecks, TestTube2, FileUp, ChevronRight, Loader2
+    ListChecks, TestTube2, FileUp, ChevronRight, Loader2, Key
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import type { Protocol, ProtocolAIResponse, ProtocolQueryType } from "@/lib/protocol-ai";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, getStoredApiKey, setStoredApiKey } from "@/lib/gemini";
 
 type StoredProtocol = Protocol & { id: string; createdAt: string; status: "Draft" | "Ready" | "Archived" };
 
@@ -67,6 +67,31 @@ export function ProtocolWorkspace() {
     const [draft, setDraft] = useState({ name: "", sampleType: "", objective: "", description: "" });
     const [showForm, setShowForm] = useState(false);
 
+    // API Key State
+    const [hasKey, setHasKey] = useState(false);
+    const [inputKey, setInputKey] = useState('');
+    const [showKeySetup, setShowKeySetup] = useState(false);
+
+    useEffect(() => {
+        setHasKey(!!getStoredApiKey());
+    }, []);
+
+    function handleSaveKey(e: React.FormEvent) {
+        e.preventDefault();
+        if (inputKey.trim()) {
+            setStoredApiKey(inputKey.trim());
+            setHasKey(true);
+            setInputKey('');
+            setShowKeySetup(false);
+        }
+    }
+
+    function handleClearKey() {
+        setStoredApiKey('');
+        setHasKey(false);
+        setShowKeySetup(true);
+    }
+
     // PDF Upload state
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [uploadedText, setUploadedText] = useState("");
@@ -81,6 +106,7 @@ export function ProtocolWorkspace() {
         setSelectedId(saved[0]?.id || "");
         setReady(true);
     }, []);
+
 
     useEffect(() => {
         if (!ready) return;
@@ -201,7 +227,12 @@ Provide a thorough, structured, practical answer. Use ## headings, bullet points
             setAiResponse({ type: "instructions", content });
             setQuery(question);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to generate response");
+            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
+                setShowKeySetup(true);
+                setError("Please configure your Gemini API Key first.");
+            } else {
+                setError(err instanceof Error ? err.message : "Failed to generate response");
+            }
         } finally {
             setLoading(false);
         }
@@ -331,7 +362,61 @@ Provide a thorough, structured, practical answer. Use ## headings, bullet points
                                 <Badge>{selectedProtocol.reagents?.length || 0} reagents</Badge>
                             </div>
                         )}
+                        <button
+                            onClick={() => setShowKeySetup(!showKeySetup)}
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold border transition ${
+                                hasKey 
+                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' 
+                                    : 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                            }`}
+                        >
+                            <Key className="h-3.5 w-3.5" />
+                            {hasKey ? 'Gemini Key Configured' : 'Configure Gemini Key'}
+                        </button>
                     </div>
+
+                    {/* API Key Setup Panel */}
+                    {(!hasKey || showKeySetup) && (
+                        <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-slate-900/50 p-6 space-y-4">
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400">
+                                    <Key className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-semibold text-slate-100">Setup Google Gemini API Key</h3>
+                                    <p className="text-xs text-slate-400 max-w-xl">
+                                        Paste your API key below. The key is securely stored only in your local browser storage and used to make direct API calls to Google.
+                                    </p>
+                                </div>
+                            </div>
+                            <form onSubmit={handleSaveKey} className="flex flex-col sm:flex-row gap-3 max-w-2xl">
+                                <input
+                                    type="password"
+                                    value={inputKey}
+                                    onChange={(e) => setInputKey(e.target.value)}
+                                    placeholder="AIzaSy..."
+                                    className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none"
+                                    required
+                                />
+                                <div className="flex gap-2">
+                                    <button type="submit" className="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-xs font-semibold text-slate-950 transition">
+                                        Save Key
+                                    </button>
+                                    {hasKey && (
+                                        <button type="button" onClick={handleClearKey} className="rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-5 py-2.5 text-xs font-semibold text-rose-400 transition">
+                                            Clear Key
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <span>Need a key?</span>
+                                <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">
+                                    Get a free Gemini API Key from Google AI Studio
+                                </a>
+                            </div>
+                        </div>
+                    )}
 
                     {!selectedProtocol && !uploadedText && (
                         <div className="rounded-2xl border-2 border-dashed border-slate-800 bg-slate-800/30 p-8 text-center space-y-2">

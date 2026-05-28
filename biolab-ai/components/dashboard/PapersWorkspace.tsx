@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Search, Upload, Link as LinkIcon, FileText, Loader2, Sparkles, X, CheckCircle2 } from 'lucide-react';
-import { callGemini } from '@/lib/gemini';
+import { useRef, useState, useEffect } from 'react';
+import { Search, Upload, Link as LinkIcon, FileText, Loader2, Sparkles, X, CheckCircle2, Key } from 'lucide-react';
+import { callGemini, getStoredApiKey, setStoredApiKey } from '@/lib/gemini';
 
 function SummaryBox({ content, loading }: { content: string; loading: boolean }) {
     if (loading) return (
@@ -43,6 +43,31 @@ interface SearchResult {
 export function PapersWorkspace() {
     const [tab, setTab] = useState<'search' | 'upload'>('search');
 
+    // API Key State
+    const [hasKey, setHasKey] = useState(false);
+    const [inputKey, setInputKey] = useState('');
+    const [showKeySetup, setShowKeySetup] = useState(false);
+
+    useEffect(() => {
+        setHasKey(!!getStoredApiKey());
+    }, []);
+
+    function handleSaveKey(e: React.FormEvent) {
+        e.preventDefault();
+        if (inputKey.trim()) {
+            setStoredApiKey(inputKey.trim());
+            setHasKey(true);
+            setInputKey('');
+            setShowKeySetup(false);
+        }
+    }
+
+    function handleClearKey() {
+        setStoredApiKey('');
+        setHasKey(false);
+        setShowKeySetup(true);
+    }
+
     // Search state
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -61,6 +86,8 @@ export function PapersWorkspace() {
     const [uploadError, setUploadError] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
+
+
 
     async function handleSearch(e: React.FormEvent) {
         e.preventDefault();
@@ -87,7 +114,12 @@ Make them highly relevant to the search query. Use realistic titles, authors, an
             const parsed: SearchResult[] = JSON.parse(jsonMatch[0]);
             setResults(parsed);
         } catch (err) {
-            setSearchError(err instanceof Error ? err.message : 'Search failed.');
+            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
+                setShowKeySetup(true);
+                setSearchError('Please configure your Gemini API Key first.');
+            } else {
+                setSearchError(err instanceof Error ? err.message : 'Search failed.');
+            }
         } finally {
             setIsSearching(false);
         }
@@ -115,8 +147,13 @@ Write a detailed summary with these sections:
 Be specific, insightful and use clear language.`;
             const result = await callGemini(prompt);
             setSummary(result);
-        } catch {
-            setSummary('Failed to generate summary. Please check your AI configuration.');
+        } catch (err) {
+            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
+                setShowKeySetup(true);
+                setSummary('Please configure your Gemini API Key first.');
+            } else {
+                setSummary('Failed to generate summary. Please check your AI configuration.');
+            }
         } finally {
             setIsSummarizing(false);
         }
@@ -176,7 +213,12 @@ Be detailed, accurate, and helpful for a lab researcher.`;
             const result = await callGemini(prompt);
             setUploadSummary(result);
         } catch (err) {
-            setUploadError(err instanceof Error ? err.message : 'Summarization failed.');
+            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
+                setShowKeySetup(true);
+                setUploadError('Please configure your Gemini API Key first.');
+            } else {
+                setUploadError(err instanceof Error ? err.message : 'Summarization failed.');
+            }
         } finally {
             setIsUploadSummarizing(false);
         }
@@ -185,11 +227,67 @@ Be detailed, accurate, and helpful for a lab researcher.`;
     return (
         <div className="mx-auto max-w-6xl space-y-6">
             {/* Header */}
-            <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">M2 · Literature Review</p>
-                <h1 className="mt-1 text-3xl font-bold text-white">Paper Summarizer</h1>
-                <p className="mt-1 text-slate-400 text-sm">Search across platforms or upload a paper for deep AI analysis.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">M2 · Literature Review</p>
+                    <h1 className="mt-1 text-3xl font-bold text-white">Paper Summarizer</h1>
+                    <p className="mt-1 text-slate-400 text-sm">Search across platforms or upload a paper for deep AI analysis.</p>
+                </div>
+                <button
+                    onClick={() => setShowKeySetup(!showKeySetup)}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold border transition ${
+                        hasKey 
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' 
+                            : 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                    }`}
+                >
+                    <Key className="h-3.5 w-3.5" />
+                    {hasKey ? 'Gemini Key Configured' : 'Configure Gemini Key'}
+                </button>
             </div>
+
+            {/* API Key Setup Panel */}
+            {(!hasKey || showKeySetup) && (
+                <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-slate-900/50 p-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400">
+                            <Key className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-sm font-semibold text-slate-100">Setup Google Gemini API Key</h3>
+                            <p className="text-xs text-slate-400 max-w-xl">
+                                Paste your API key below. The key is securely stored only in your local browser storage and used to make direct API calls to Google.
+                            </p>
+                        </div>
+                    </div>
+                    <form onSubmit={handleSaveKey} className="flex flex-col sm:flex-row gap-3 max-w-2xl">
+                        <input
+                            type="password"
+                            value={inputKey}
+                            onChange={(e) => setInputKey(e.target.value)}
+                            placeholder="AIzaSy..."
+                            className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none"
+                            required
+                        />
+                        <div className="flex gap-2">
+                            <button type="submit" className="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-xs font-semibold text-slate-950 transition">
+                                Save Key
+                            </button>
+                            {hasKey && (
+                                <button type="button" onClick={handleClearKey} className="rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-5 py-2.5 text-xs font-semibold text-rose-400 transition">
+                                    Clear Key
+                                </button>
+                            )}
+                        </div>
+                    </form>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <span>Need a key?</span>
+                        <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">
+                            Get a free Gemini API Key from Google AI Studio
+                        </a>
+                    </div>
+                </div>
+            )}
 
             {/* Tab Toggle */}
             <div className="flex gap-1 rounded-2xl bg-slate-900 border border-slate-800 p-1 w-fit">
@@ -222,6 +320,7 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                             ⚠ {searchError}
                         </div>
                     )}
+
 
                     {results.length > 0 && (
                         <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
