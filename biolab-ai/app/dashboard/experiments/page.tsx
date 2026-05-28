@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { callGemini, getStoredOpenRouterKey } from "@/lib/gemini";
+import { callGemini } from "@/lib/gemini";
 
 interface DailyLog {
     id: string;
@@ -204,13 +204,12 @@ export default function ExperimentsPage() {
             try {
                 const parsed = JSON.parse(stored);
                 setExperiments(parsed);
-                window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(parsed));
             } catch {
-                setExperiments(DEFAULT_EXPERIMENTS);
+                setExperiments([]);
             }
         } else {
-            setExperiments(DEFAULT_EXPERIMENTS);
-            window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(DEFAULT_EXPERIMENTS));
+            // New users start with an empty lab — no default data
+            setExperiments([]);
         }
     }, []);
 
@@ -367,11 +366,7 @@ Format with beautiful headings, bold bullet markers, and direct answers. Keep it
             setAiAnomalyResult(res);
         } catch (err) {
             console.error("Anomaly audit failed:", err);
-            if (err instanceof Error && err.message === "API_KEY_MISSING") {
-                setAnomalyError("API Key missing! Please configure your OpenRouter key in the Settings (top-right corner).");
-            } else {
-                setAnomalyError(err instanceof Error ? err.message : "Failed to run anomaly audit.");
-            }
+            setAnomalyError(err instanceof Error ? err.message : "Failed to run anomaly audit.");
         } finally {
             setIsDetecting(false);
         }
@@ -413,11 +408,7 @@ Format beautifully for inclusion in our lab documentation.`;
             setAiSummaryResult(res);
         } catch (err) {
             console.error("AI Research Summary failed:", err);
-            if (err instanceof Error && err.message === "API_KEY_MISSING") {
-                setSummaryError("API Key missing! Please configure your OpenRouter key in Settings.");
-            } else {
-                setSummaryError(err instanceof Error ? err.message : "Failed to generate research summary.");
-            }
+            setSummaryError(err instanceof Error ? err.message : "Failed to generate research summary.");
         } finally {
             setIsSummarizing(false);
         }
