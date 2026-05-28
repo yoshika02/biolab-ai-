@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { callGemini, getStoredOpenRouterKey } from "@/lib/gemini";
 
@@ -346,7 +345,7 @@ export default function InventoryPage() {
 
         // Record a nice in-app notification or activity if desired
         const selectedExpName = experiments.find(x => x.id === linkedExperimentId)?.name || "Unspecified Experiment";
-        
+
         // Push an entry to our general activity log helper
         const storedLogs = window.localStorage.getItem("biolab.activity_logs") || "[]";
         try {
@@ -453,7 +452,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                 <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-teal-400">M3 · Lab Operations</p>
                     <h1 className="mt-1 text-3xl font-bold text-white">Inventory Tracker</h1>
-                    <p className="mt-1 text-slate-400 text-sm">Keep stock counts, storage locations, expiry reminders, and safety audits unified.</p>
+                    <p className="mt-1 text-slate-300 text-sm">Keep stock counts, storage locations, expiry reminders, and safety audits unified.</p>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                     <button
@@ -475,30 +474,30 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
 
             {/* Quick Stats Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="p-4 bg-slate-900/40 border-slate-800">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg shadow-slate-950/40">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Items</p>
                     <p className="mt-1.5 text-2xl font-bold text-white">{inventory.length}</p>
-                </Card>
-                <Card className="p-4 bg-slate-900/40 border-slate-800">
+                </div>
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg shadow-slate-950/40">
                     <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">Expired Items</p>
                     <p className="mt-1.5 text-2xl font-bold text-rose-400">{expiryStats.expired}</p>
-                </Card>
-                <Card className="p-4 bg-slate-900/40 border-slate-800">
+                </div>
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg shadow-slate-950/40">
                     <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">Expiring in 30d</p>
                     <p className="mt-1.5 text-2xl font-bold text-amber-400">{expiryStats.warning}</p>
-                </Card>
-                <Card className="p-4 bg-slate-900/40 border-slate-800">
+                </div>
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg shadow-slate-950/40">
                     <p className="text-xs font-semibold uppercase tracking-wider text-teal-400">Low Stock Alert</p>
                     <p className="mt-1.5 text-2xl font-bold text-teal-400">
                         {inventory.filter(item => item.quantity <= 50 && item.category !== "Consumable").length}
                     </p>
-                </Card>
+                </div>
             </div>
 
             {/* Layout Split */}
             <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
                 {/* Inventory Table Section */}
-                <Card className="p-6 bg-slate-900/40 border-slate-800 flex flex-col gap-5">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-5 shadow-lg backdrop-blur-md">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         {/* Search */}
                         <div className="relative flex-1 max-w-sm">
@@ -532,7 +531,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                     <div className="overflow-x-auto rounded-xl border border-slate-800">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-950 text-slate-400 text-xs font-semibold border-b border-slate-800">
+                                <tr className="bg-slate-950 text-slate-200 text-xs font-semibold border-b border-slate-800">
                                     <th className="p-4">Item Name</th>
                                     <th className="p-4">Category</th>
                                     <th className="p-4">Location</th>
@@ -553,7 +552,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                         <tr key={item.id} className="border-b border-slate-800/60 hover:bg-slate-800/10 text-slate-200 transition">
                                             <td className="p-4">
                                                 <div className="font-semibold text-slate-100">{item.item}</div>
-                                                {item.notes && <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{item.notes}</div>}
+                                                {item.notes && <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{item.notes}</div>}
                                             </td>
                                             <td className="p-4">
                                                 <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
@@ -566,10 +565,10 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                                     {item.category}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-slate-400 text-xs">
+                                            <td className="p-4 text-slate-300 text-xs">
                                                 <div className="flex items-center gap-1.5">
-                                                    <MapPin className="h-3 w-3 text-slate-500" />
-                                                    <span>{item.location}</span>
+                                                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="font-medium">{item.location}</span>
                                                 </div>
                                             </td>
                                             <td className="p-4 text-xs font-semibold">
@@ -608,12 +607,12 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                             </tbody>
                         </table>
                     </div>
-                </Card>
+                </div>
 
                 {/* Right Sidebar: AI Audits & Expiry prediction */}
                 <div className="space-y-6">
                     {/* AI Safety Auditor Card */}
-                    <Card className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/20 border-slate-800 space-y-4">
+                    <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/20 p-6 space-y-4 backdrop-blur-md shadow-lg shadow-slate-950/50">
                         <div className="flex items-center gap-2">
                             <ShieldAlert className="h-5 w-5 text-emerald-400" />
                             <h3 className="text-sm font-bold text-slate-100">AI Safety Auditor</h3>
@@ -653,10 +652,10 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                 {aiAuditResult}
                             </div>
                         )}
-                    </Card>
+                    </div>
 
                     {/* AI Expiry / Reorder Predictions Card */}
-                    <Card className="p-6 bg-slate-900/40 border-slate-800 space-y-4">
+                    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-4 backdrop-blur-md shadow-lg shadow-slate-950/50 font-sans">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-5 w-5 text-teal-400" />
                             <h3 className="text-sm font-bold text-slate-100">AI Reorder Predictor</h3>
@@ -694,14 +693,14 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                 {aiPredictResult}
                             </div>
                         )}
-                    </Card>
+                    </div>
                 </div>
             </div>
 
             {/* Modal: Add Reagent */}
             {showAddForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 p-6 space-y-4 shadow-2xl relative">
+                    <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                         <button
                             onClick={() => setShowAddForm(false)}
                             className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition"
@@ -807,14 +806,14 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                 </button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
 
             {/* Modal: Bulk CSV Import */}
             {showCSVImport && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <Card className="w-full max-w-xl bg-slate-900 border-slate-800 p-6 space-y-4 shadow-2xl relative">
+                    <div className="w-full max-w-xl rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                         <button
                             onClick={() => setShowCSVImport(false)}
                             className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition"
@@ -862,14 +861,14 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                 </button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
 
             {/* Modal: Use Stock / Deduct Reagent */}
             {showUseStockForm && selectedItemForUse && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <Card className="w-full max-w-md bg-slate-900 border-slate-800 p-6 space-y-4 shadow-2xl relative">
+                    <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                         <button
                             onClick={() => {
                                 setShowUseStockForm(false);
@@ -886,7 +885,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                         <div className="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-2">
                             <div className="text-xs text-slate-400">Selected Material:</div>
                             <div className="text-sm font-bold text-slate-200">{selectedItemForUse.item}</div>
-                            <div className="text-xs text-slate-500 flex justify-between pt-1">
+                            <div className="text-xs text-slate-500 flex justify-between pt-1 font-medium">
                                 <span>Current Stock: {selectedItemForUse.quantity} {selectedItemForUse.unit}</span>
                                 <span>Location: {selectedItemForUse.location}</span>
                             </div>
@@ -940,7 +939,7 @@ Format with beautiful headings and bold markers. Keep it actionable.`;
                                 </button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
         </div>

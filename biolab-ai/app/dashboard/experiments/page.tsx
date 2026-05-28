@@ -24,7 +24,6 @@ import {
     ListTodo
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { callGemini, getStoredOpenRouterKey } from "@/lib/gemini";
 
@@ -205,7 +204,6 @@ export default function ExperimentsPage() {
             try {
                 const parsed = JSON.parse(stored);
                 setExperiments(parsed);
-                // Also trigger sync for shared inventory state if needed
                 window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(parsed));
             } catch {
                 setExperiments(DEFAULT_EXPERIMENTS);
@@ -432,7 +430,10 @@ Format beautifully for inclusion in our lab documentation.`;
                 <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-amber-400">M4 · Lab Operations</p>
                     <h1 className="mt-1 text-3xl font-bold text-white">Experiment Logger</h1>
-                    <p className="mt-1 text-slate-400 text-sm">Log daily parameters (pH, cell growth, yields), track run pipelines, and run AI anomaly checks.</p>
+                    <p className="mt-1 text-slate-300 text-sm">Log daily parameters (pH, cell growth, yields), track run pipelines, and run AI anomaly checks.</p>
+                    <p className="mt-2.5 text-xs text-slate-400 italic max-w-3xl leading-relaxed">
+                        The Experiment Logger is a digital lab notebook and analytics workspace that compiles raw replication data, visualizes cell growth trends, and runs Llama-powered diagnostics to instantly spot culture contamination.
+                    </p>
                 </div>
                 <div>
                     <button
@@ -455,8 +456,8 @@ Format beautifully for inclusion in our lab documentation.`;
                             onClick={() => setFilterStage(active ? "All" : stage)}
                             className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between h-20 ${
                                 active
-                                    ? "bg-amber-500/10 border-amber-500 text-amber-400"
-                                    : "bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                                    ? "bg-amber-500/10 border-amber-500 text-amber-400 font-bold"
+                                    : "bg-slate-900/40 border-slate-800 text-slate-300 hover:border-slate-700"
                             }`}
                         >
                             <span className="text-xs font-semibold uppercase tracking-wider">{stage} Runs</span>
@@ -469,7 +470,7 @@ Format beautifully for inclusion in our lab documentation.`;
             {/* Split View */}
             <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
                 {/* Left side: Experiment list list */}
-                <Card className="p-4 bg-slate-900/40 border-slate-800 space-y-4 h-[700px] overflow-y-auto flex flex-col">
+                <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 space-y-4 h-[700px] overflow-y-auto flex flex-col backdrop-blur-md shadow-lg shadow-slate-950/50">
                     <div className="relative">
                         <Input
                             value={search}
@@ -495,7 +496,7 @@ Format beautifully for inclusion in our lab documentation.`;
                                         }}
                                         className={`p-3.5 rounded-xl border text-left cursor-pointer transition ${
                                             selected
-                                                ? "bg-slate-800/40 border-amber-500/60"
+                                                ? "bg-slate-800/60 border-amber-500/80"
                                                 : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
                                         }`}
                                     >
@@ -511,20 +512,20 @@ Format beautifully for inclusion in our lab documentation.`;
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-3 text-[10px] text-slate-400">
-                                            <div className="flex items-center gap-1">
-                                                <User className="h-3 w-3 text-slate-500" />
-                                                <span>{exp.lead}</span>
+                                        <div className="flex items-center justify-between mt-3 text-[10px] text-slate-300">
+                                            <div className="flex items-center gap-1.5">
+                                                <User className="h-3.5 w-3.5 text-slate-400" />
+                                                <span className="font-semibold text-slate-200">{exp.lead}</span>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3 text-slate-500" />
-                                                <span>{exp.date}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                                <span className="font-semibold text-slate-200">{exp.date}</span>
                                             </div>
                                         </div>
 
                                         {exp.dailyLogs.length > 0 && (
-                                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-800/60 text-[10px] text-slate-500">
-                                                <Activity className="h-3 w-3 text-amber-400/80" />
+                                            <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-800/60 text-[10px] text-slate-400">
+                                                <Activity className="h-3 w-3 text-amber-400" />
                                                 <span>{exp.dailyLogs.length} days logged</span>
                                             </div>
                                         )}
@@ -533,26 +534,26 @@ Format beautifully for inclusion in our lab documentation.`;
                             })
                         )}
                     </div>
-                </Card>
+                </div>
 
                 {/* Right side: Detailed View */}
                 {selectedExp ? (
                     <div className="space-y-6">
-                        <Card className="p-6 bg-slate-900/40 border-slate-800 space-y-6">
+                        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 space-y-6 backdrop-blur-md shadow-lg shadow-slate-950/50">
                             {/* Run Header */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h2 className="text-xl font-bold text-slate-100">{selectedExp.name}</h2>
                                         <Badge variant="success">{selectedExp.stage}</Badge>
                                     </div>
-                                    <p className="text-xs text-slate-400">
-                                        Lead Scientist: <span className="text-slate-200 font-medium">{selectedExp.lead}</span> | Started: <span className="text-slate-200 font-medium">{selectedExp.date}</span>
+                                    <p className="text-xs text-slate-300">
+                                        Lead Scientist: <span className="text-white font-semibold">{selectedExp.lead}</span> | Started: <span className="text-white font-semibold">{selectedExp.date}</span>
                                     </p>
                                     {selectedExp.protocolLinked && (
-                                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                                        <p className="text-xs text-slate-400 flex items-center gap-1">
                                             <FileText className="h-3.5 w-3.5 text-slate-400" />
-                                            <span>Linked SOP: <span className="text-teal-400 underline">{selectedExp.protocolLinked}</span></span>
+                                            <span>Linked SOP: <span className="text-teal-400 underline font-semibold">{selectedExp.protocolLinked}</span></span>
                                         </p>
                                     )}
                                 </div>
@@ -590,9 +591,9 @@ Format beautifully for inclusion in our lab documentation.`;
 
                             {/* Run description */}
                             {selectedExp.notes && (
-                                <div className="rounded-2xl bg-slate-950 p-4 border border-slate-800/80">
+                                <div className="rounded-2xl bg-slate-950/80 p-4 border border-slate-800/80">
                                     <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Run Overview / Objective</h5>
-                                    <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">{selectedExp.notes}</p>
+                                    <p className="text-xs text-slate-200 mt-1.5 leading-relaxed">{selectedExp.notes}</p>
                                 </div>
                             )}
 
@@ -617,7 +618,7 @@ Format beautifully for inclusion in our lab documentation.`;
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-slate-950 text-slate-400 text-[10px] font-semibold uppercase tracking-wider border-b border-slate-800">
+                                            <tr className="bg-slate-950 text-slate-200 text-[10px] font-semibold uppercase tracking-wider border-b border-slate-800">
                                                 <th className="p-3">Day</th>
                                                 <th className="p-3">Log Date</th>
                                                 <th className="p-3 text-center">OD600 (Cell Density)</th>
@@ -643,7 +644,7 @@ Format beautifully for inclusion in our lab documentation.`;
                                                         <td className="p-3 text-center font-mono font-semibold text-slate-100">
                                                             {log.yieldPercent !== "—" ? `${log.yieldPercent}%` : "—"}
                                                         </td>
-                                                        <td className="p-3 text-slate-300 italic">{log.notes}</td>
+                                                        <td className="p-3 text-slate-200 italic">{log.notes}</td>
                                                     </tr>
                                                 ))
                                             )}
@@ -651,12 +652,12 @@ Format beautifully for inclusion in our lab documentation.`;
                                     </table>
                                 </div>
                             </div>
-                        </Card>
+                        </div>
 
                         {/* AI Split Panel: Anomaly Detector & weekly Summary */}
                         <div className="grid gap-6 md:grid-cols-2">
                             {/* AI Anomaly Detector Panel */}
-                            <Card className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/10 border-slate-800 space-y-4">
+                            <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/20 p-6 space-y-4 backdrop-blur-md shadow-lg shadow-slate-950/50">
                                 <div className="flex items-center gap-2">
                                     <ShieldAlert className="h-5 w-5 text-rose-400" />
                                     <h3 className="text-sm font-bold text-slate-100">AI Biological Anomaly Detector</h3>
@@ -696,10 +697,10 @@ Format beautifully for inclusion in our lab documentation.`;
                                         {aiAnomalyResult}
                                     </div>
                                 )}
-                            </Card>
+                            </div>
 
                             {/* AI Progress Summary Card */}
-                            <Card className="p-6 bg-slate-900/40 border-slate-800 space-y-4">
+                            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 backdrop-blur-md shadow-lg shadow-slate-950/50">
                                 <div className="flex items-center gap-2">
                                     <FileText className="h-5 w-5 text-amber-400" />
                                     <h3 className="text-sm font-bold text-slate-100">AI Progress Reviewer</h3>
@@ -711,7 +712,7 @@ Format beautifully for inclusion in our lab documentation.`;
                                 <button
                                     onClick={runAIResearchSummary}
                                     disabled={isSummarizing || selectedExp.dailyLogs.length === 0}
-                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300 transition disabled:opacity-50"
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900/60 hover:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300 transition disabled:opacity-50"
                                 >
                                     {isSummarizing ? (
                                         <>
@@ -737,11 +738,11 @@ Format beautifully for inclusion in our lab documentation.`;
                                         {aiSummaryResult}
                                     </div>
                                 )}
-                            </Card>
+                            </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex h-[700px] items-center justify-center rounded-3xl border border-dashed border-slate-800 bg-slate-900/10 p-8 text-center">
+                    <div className="flex h-[700px] items-center justify-center rounded-3xl border border-dashed border-slate-800 bg-slate-900/30 p-8 text-center backdrop-blur-md shadow-lg shadow-slate-950/40">
                         <div className="max-w-sm space-y-3">
                             <Activity className="h-10 w-10 text-slate-600 mx-auto animate-pulse" />
                             <h3 className="text-sm font-bold text-slate-300">No Experiment Selected</h3>
@@ -756,7 +757,7 @@ Format beautifully for inclusion in our lab documentation.`;
             {/* Modal: Log New Run */}
             {showAddForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 p-6 space-y-4 shadow-2xl relative">
+                    <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
                         <button
                             onClick={() => setShowAddForm(false)}
                             className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition"
@@ -849,14 +850,14 @@ Format beautifully for inclusion in our lab documentation.`;
                                 </button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
 
             {/* Modal: Add Day Log */}
             {showAddLogForm && selectedExp && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <Card className="w-full max-w-md bg-slate-900 border-slate-800 p-6 space-y-4 shadow-2xl relative">
+                    <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
                         <button
                             onClick={() => setShowAddLogForm(false)}
                             className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition"
@@ -925,7 +926,7 @@ Format beautifully for inclusion in our lab documentation.`;
                                 </button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
 
