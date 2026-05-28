@@ -149,28 +149,37 @@ export default function InventoryPage() {
     const [predictError, setPredictError] = useState("");
 
     useEffect(() => {
-        // Load inventory from localstorage or seed defaults
+        const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+
+        // Load inventory — wipe stale legacy data for non-seeded (non-Yoshika) accounts
         const storedInv = window.localStorage.getItem("biolab.inventory_premium");
         if (storedInv) {
-            try {
-                setInventory(JSON.parse(storedInv));
-            } catch {
+            if (!hasSeeded) {
+                // Clear legacy default data written by old code
+                window.localStorage.removeItem("biolab.inventory_premium");
                 setInventory([]);
+            } else {
+                try {
+                    setInventory(JSON.parse(storedInv));
+                } catch {
+                    setInventory([]);
+                }
             }
         } else {
-            // New users start with a blank inventory — no default data
             setInventory([]);
         }
 
-        // Fetch experiments for dropdown
+        // Fetch experiments for dropdown (same guard)
         const storedExps = window.localStorage.getItem("biolab.experiments_premium");
-        if (storedExps) {
+        if (storedExps && hasSeeded) {
             try {
                 const parsed = JSON.parse(storedExps);
                 setExperiments(parsed.map((e: any) => ({ id: e.id, name: e.name, stage: e.stage })));
             } catch {
                 setExperiments([]);
             }
+        } else {
+            setExperiments([]);
         }
     }, []);
 

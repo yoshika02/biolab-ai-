@@ -44,33 +44,36 @@ export default function AnalyticsPage() {
 
     // Load active state databases on mount
     useEffect(() => {
+        const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+
         const storedInv = window.localStorage.getItem("biolab.inventory_premium");
         if (storedInv) {
-            try {
-                setInventory(JSON.parse(storedInv));
-            } catch {
-                setInventory([]);
+            if (!hasSeeded) {
+                window.localStorage.removeItem("biolab.inventory_premium");
+            } else {
+                try { setInventory(JSON.parse(storedInv)); } catch { setInventory([]); }
             }
         }
 
         const storedExps = window.localStorage.getItem("biolab.experiments_premium");
         if (storedExps) {
-            try {
-                setExperiments(JSON.parse(storedExps));
-            } catch {
-                setExperiments([]);
+            if (!hasSeeded) {
+                window.localStorage.removeItem("biolab.experiments_premium");
+            } else {
+                try { setExperiments(JSON.parse(storedExps)); } catch { setExperiments([]); }
             }
         }
 
         const storedPrimers = window.localStorage.getItem("biolab.primers_premium");
         if (storedPrimers) {
-            try {
-                setPrimers(JSON.parse(storedPrimers));
-            } catch {
-                setPrimers([]);
+            if (!hasSeeded) {
+                window.localStorage.removeItem("biolab.primers_premium");
+            } else {
+                try { setPrimers(JSON.parse(storedPrimers)); } catch { setPrimers([]); }
             }
         }
     }, []);
+
 
     // Calculated Performance Metrics — real data only, no fake fallbacks
     const stats = useMemo(() => {

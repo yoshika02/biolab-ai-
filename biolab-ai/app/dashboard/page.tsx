@@ -96,6 +96,19 @@ export default function DashboardHome() {
     useEffect(() => {
         // Live dynamic local storage count reader
         const updateCounts = () => {
+            const hasSeeded = typeof window !== "undefined" &&
+                window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
+
+            // Non-seeded users get all-zero counts — wipe any legacy stale data first
+            if (!hasSeeded) {
+                ["biolab.inventory_premium", "biolab.experiments_premium", "biolab.primers_premium"]
+                    .forEach(k => window.localStorage.removeItem(k));
+                const zeroCounts: Record<string, number> = {};
+                storageKeys.forEach(item => { zeroCounts[item.key] = 0; });
+                setCounts(zeroCounts);
+                return;
+            }
+
             const currentCounts: Record<string, number> = {};
             storageKeys.forEach(item => {
                 if (typeof window !== "undefined") {
@@ -105,7 +118,6 @@ export default function DashboardHome() {
                             const parsed = JSON.parse(val);
                             currentCounts[item.key] = Array.isArray(parsed) ? parsed.length : 0;
                         } else {
-                            // No data in storage — return 0, not fake fallbacks
                             currentCounts[item.key] = 0;
                         }
                     } catch {

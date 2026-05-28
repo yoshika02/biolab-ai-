@@ -199,16 +199,23 @@ export default function ExperimentsPage() {
     const [summaryError, setSummaryError] = useState("");
 
     useEffect(() => {
+        const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed") === "true";
         const stored = window.localStorage.getItem("biolab.experiments_premium");
+
         if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                setExperiments(parsed);
-            } catch {
+            // If seeding flag is absent, the stored data is legacy stale defaults — wipe it
+            if (!hasSeeded) {
+                window.localStorage.removeItem("biolab.experiments_premium");
                 setExperiments([]);
+            } else {
+                try {
+                    setExperiments(JSON.parse(stored));
+                } catch {
+                    setExperiments([]);
+                }
             }
         } else {
-            // New users start with an empty lab — no default data
+            // No stored data: blank slate for new users
             setExperiments([]);
         }
     }, []);
