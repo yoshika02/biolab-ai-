@@ -5,9 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
     try {
-        const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-        const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
-        const primaryProvider = process.env.PRIMARY_PROVIDER || "gemini";
+        const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || "";
 
         const body = await request.json();
         const { prompt } = body as { prompt: string };
@@ -16,15 +14,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
         }
 
-        if (primaryProvider === "gemini" && !GEMINI_API_KEY && !OPENROUTER_API_KEY) {
+        if (!OPENROUTER_API_KEY) {
             return NextResponse.json(
-                { error: "AI service not configured. Add GEMINI_API_KEY or OPENROUTER_API_KEY to your environment variables." },
-                { status: 503 }
-            );
-        }
-        if (primaryProvider === "llama" && !OPENROUTER_API_KEY && !GEMINI_API_KEY) {
-            return NextResponse.json(
-                { error: "AI service not configured. Add OPENROUTER_API_KEY or GEMINI_API_KEY to your environment variables." },
+                { error: "AI service not configured. Add OPENROUTER_API_KEY to your environment variables." },
                 { status: 503 }
             );
         }

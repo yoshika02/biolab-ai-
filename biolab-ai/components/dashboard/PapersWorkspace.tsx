@@ -4,14 +4,8 @@ import { useRef, useState, useEffect } from 'react';
 import { Search, Upload, Link as LinkIcon, FileText, Loader2, Sparkles, X, CheckCircle2, Key } from 'lucide-react';
 import {
     callGemini,
-    getStoredApiKey,
-    setStoredApiKey,
     getStoredOpenRouterKey,
     setStoredOpenRouterKey,
-    getStoredPrimaryProvider,
-    setStoredPrimaryProvider,
-    getStoredEnableFallback,
-    setStoredEnableFallback,
     getStoredLlamaModel,
     setStoredLlamaModel
 } from '@/lib/gemini';
@@ -55,42 +49,27 @@ interface SearchResult {
 export function PapersWorkspace() {
     const [tab, setTab] = useState<'search' | 'upload'>('search');
 
-    // Premium Multi-Model Settings State
-    const [hasGeminiKey, setHasGeminiKey] = useState(false);
+    // OpenRouter Settings State
     const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
-    const [inputGeminiKey, setInputGeminiKey] = useState("");
     const [inputOpenRouterKey, setInputOpenRouterKey] = useState("");
-    const [primaryProvider, setPrimaryProvider] = useState<"gemini" | "llama">("gemini");
-    const [enableFallback, setEnableFallback] = useState(true);
     const [llamaModel, setLlamaModel] = useState("meta-llama/llama-3.3-70b-instruct");
     const [showKeySetup, setShowKeySetup] = useState(false);
 
     useEffect(() => {
-        const geminiKey = getStoredApiKey();
         const openrouterKey = getStoredOpenRouterKey();
-        setHasGeminiKey(!!geminiKey);
         setHasOpenRouterKey(!!openrouterKey);
-        setInputGeminiKey(geminiKey);
         setInputOpenRouterKey(openrouterKey);
-        setPrimaryProvider(getStoredPrimaryProvider());
-        setEnableFallback(getStoredEnableFallback());
         setLlamaModel(getStoredLlamaModel());
     }, []);
 
     function handleSaveEngineSettings(e: React.FormEvent) {
         e.preventDefault();
         
-        // Save Gemini key
-        setStoredApiKey(inputGeminiKey);
-        setHasGeminiKey(!!inputGeminiKey.trim());
-
         // Save OpenRouter key
         setStoredOpenRouterKey(inputOpenRouterKey);
         setHasOpenRouterKey(!!inputOpenRouterKey.trim());
 
-        // Save provider, fallback, model settings
-        setStoredPrimaryProvider(primaryProvider);
-        setStoredEnableFallback(enableFallback);
+        // Save model settings
         setStoredLlamaModel(llamaModel);
 
         setShowKeySetup(false);
@@ -243,7 +222,7 @@ Be detailed, accurate, and helpful for a lab researcher.`;
         } catch (err) {
             if (err instanceof Error && err.message === 'API_KEY_MISSING') {
                 setShowKeySetup(true);
-                setUploadError(`Please configure your ${primaryProvider === 'gemini' ? 'Gemini' : 'OpenRouter'} API Key first.`);
+                setUploadError("Please configure your OpenRouter API Key first.");
             } else {
                 setUploadError(err instanceof Error ? err.message : 'Summarization failed.');
             }
@@ -264,21 +243,20 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                 <button
                     onClick={() => setShowKeySetup(!showKeySetup)}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold border transition ${
-                        (primaryProvider === "gemini" ? hasGeminiKey : hasOpenRouterKey)
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' 
+                        hasOpenRouterKey
+                            ? 'border-teal-500/30 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20' 
                             : 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
                     }`}
                 >
                     <Sparkles className="h-3.5 w-3.5" />
                     <span>
-                        Engine: {primaryProvider === "gemini" ? "Gemini 1.5" : "Llama 3.3"}
-                        {enableFallback && " (Resilient)"}
+                        OpenRouter Llama Configured
                     </span>
                 </button>
             </div>
 
             {/* API Key / Engine Settings Setup Panel */}
-            {((!hasGeminiKey && !hasOpenRouterKey) || showKeySetup) && (
+            {(!hasOpenRouterKey || showKeySetup) && (
                 <div className="rounded-3xl border border-teal-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/20 p-6 space-y-6 shadow-2xl transition duration-300">
                     {/* Panel Header */}
                     <div className="flex items-start justify-between border-b border-slate-800 pb-4">
@@ -287,9 +265,9 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                                 <Sparkles className="h-5 w-5" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-slate-100">AI Engine & Model Settings</h3>
+                                <h3 className="text-sm font-bold text-slate-100">AI Model Settings</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
-                                    Choose your primary AI engine, configure keys, and enable resilient fallback failover.
+                                    Configure your OpenRouter API key and select a Llama model.
                                 </p>
                             </div>
                         </div>
@@ -303,115 +281,40 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                     </div>
 
                     <form onSubmit={handleSaveEngineSettings} className="space-y-5">
-                        {/* 1. Primary Engine Switcher */}
+                        {/* 1. API Key Input */}
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Primary Model Engine</label>
-                            <div className="grid grid-cols-2 gap-3 p-1 rounded-2xl bg-slate-950 border border-slate-800">
-                                <button
-                                    type="button"
-                                    onClick={() => setPrimaryProvider("gemini")}
-                                    className={`py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-                                        primaryProvider === "gemini"
-                                            ? "bg-teal-500 text-slate-950 shadow-lg"
-                                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-                                    }`}
-                                >
-                                    <Key className="h-3.5 w-3.5" />
-                                    Google Gemini (1.5 Flash)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPrimaryProvider("llama")}
-                                    className={`py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-                                        primaryProvider === "llama"
-                                            ? "bg-teal-500 text-slate-950 shadow-lg"
-                                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-                                    }`}
-                                >
-                                    <Sparkles className="h-3.5 w-3.5" />
-                                    Meta Llama 3.3 (OpenRouter)
-                                </button>
+                            <div className="flex justify-between items-center">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">OpenRouter API Key (Llama)</label>
+                                <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-[10px] text-teal-400 hover:underline">Get Key</a>
                             </div>
-                        </div>
-
-                        {/* 2. Toggle Smart Fallback */}
-                        <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-800 bg-slate-950/40">
-                            <div className="space-y-1">
-                                <label htmlFor="fallback-toggle-papers" className="text-xs font-bold text-slate-200 block cursor-pointer">Enable Smart Fallback</label>
-                                <span className="text-[11px] text-slate-500 block max-w-md leading-relaxed">
-                                    If your primary model fails (e.g. rate limit, api error, or missing key), the request will instantly try your secondary configured model.
-                                </span>
-                            </div>
-                            <div className="relative inline-flex items-center cursor-pointer">
-                                <input 
-                                    id="fallback-toggle-papers"
-                                    type="checkbox" 
-                                    checked={enableFallback} 
-                                    onChange={(e) => setEnableFallback(e.target.checked)} 
-                                    className="sr-only peer" 
+                            <div className="relative">
+                                <input
+                                    type="password"
+                                    value={inputOpenRouterKey}
+                                    onChange={(e) => setInputOpenRouterKey(e.target.value)}
+                                    placeholder="sk-or-... (Saved in Local Storage)"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-teal-500 focus:outline-none"
+                                    required
                                 />
-                                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 peer-checked:after:bg-slate-950"></div>
+                                {hasOpenRouterKey && (
+                                    <span className="absolute right-3 top-2.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Configured</span>
+                                )}
                             </div>
                         </div>
 
-                        {/* 3. API Key Inputs */}
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {/* Gemini API Key */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Google Gemini API Key</label>
-                                    <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-[10px] text-teal-400 hover:underline">Get Key</a>
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        type="password"
-                                        value={inputGeminiKey}
-                                        onChange={(e) => setInputGeminiKey(e.target.value)}
-                                        placeholder="AIzaSy... (Saved in Local Storage)"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-teal-500 focus:outline-none"
-                                    />
-                                    {hasGeminiKey && (
-                                        <span className="absolute right-3 top-2.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Configured</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* OpenRouter API Key */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">OpenRouter API Key (Llama)</label>
-                                    <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-[10px] text-teal-400 hover:underline">Get Key</a>
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        type="password"
-                                        value={inputOpenRouterKey}
-                                        onChange={(e) => setInputOpenRouterKey(e.target.value)}
-                                        placeholder="sk-or-... (Saved in Local Storage)"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-teal-500 focus:outline-none"
-                                    />
-                                    {hasOpenRouterKey && (
-                                        <span className="absolute right-3 top-2.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Configured</span>
-                                    )}
-                                </div>
-                            </div>
+                        {/* 2. Llama Model selection */}
+                        <div className="space-y-2 pt-1">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Llama Model Engine</label>
+                            <select
+                                value={llamaModel}
+                                onChange={(e) => setLlamaModel(e.target.value)}
+                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 outline-none focus:border-teal-500"
+                            >
+                                <option value="meta-llama/llama-3.3-70b-instruct">Meta Llama 3.3 70B Instruct (Recommended)</option>
+                                <option value="meta-llama/llama-3.1-8b-instruct:free">Meta Llama 3.1 8B Instruct (Free)</option>
+                                <option value="meta-llama/llama-3-8b-instruct:free">Meta Llama 3 8B Instruct (Free)</option>
+                            </select>
                         </div>
-
-                        {/* 4. Llama Model selection */}
-                        {(primaryProvider === "llama" || enableFallback) && (
-                            <div className="space-y-2 pt-1">
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Llama Model Engine</label>
-                                <select
-                                    value={llamaModel}
-                                    onChange={(e) => setLlamaModel(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 outline-none focus:border-teal-500"
-                                >
-                                    <option value="meta-llama/llama-3.3-70b-instruct">Meta Llama 3.3 70B Instruct (Recommended)</option>
-                                    <option value="meta-llama/llama-3.1-8b-instruct:free">Meta Llama 3.1 8B Instruct (Free)</option>
-                                    <option value="meta-llama/llama-3-8b-instruct:free">Meta Llama 3 8B Instruct (Free)</option>
-                                </select>
-                            </div>
-                        )}
 
                         {/* Form Action Buttons */}
                         <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
@@ -426,7 +329,7 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                                 type="submit" 
                                 className="rounded-xl bg-teal-500 hover:bg-teal-600 px-6 py-2.5 text-xs font-bold text-slate-950 transition shadow-lg shadow-teal-500/20"
                             >
-                                Apply Engine Settings
+                                Apply Settings
                             </button>
                         </div>
                     </form>
