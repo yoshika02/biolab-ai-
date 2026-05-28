@@ -50,7 +50,6 @@ export default function ProfilePage() {
 
     // Load active settings from helpers on mount
     useEffect(() => {
-        setApiKey(getStoredOpenRouterKey());
         setSelectedModel(getStoredLlamaModel());
     }, []);
 
@@ -60,7 +59,6 @@ export default function ProfilePage() {
         setSaveSuccess(false);
 
         setTimeout(() => {
-            setStoredOpenRouterKey(apiKey);
             setStoredLlamaModel(selectedModel);
             setIsSaving(false);
             setSaveSuccess(true);
@@ -71,7 +69,7 @@ export default function ProfilePage() {
                 const parsed = JSON.parse(storedLogs);
                 parsed.unshift({
                     id: crypto.randomUUID(),
-                    action: "updated openrouter platform credentials",
+                    action: "updated laboratory model target configuration",
                     module: "Profile",
                     createdAt: new Date().toISOString()
                 });
@@ -122,7 +120,7 @@ export default function ProfilePage() {
                 <p className="text-xs font-bold uppercase tracking-widest text-teal-400 font-mono">M8 · Platform Profile</p>
                 <h1 className="mt-1 text-3xl font-bold text-white">Researcher Profile & Settings</h1>
                 <p className="mt-1 text-slate-300 text-sm">
-                    Configure laboratory credentials, edit biosafety licenses, toggle OpenRouter key targets, and execute database backups.
+                    Configure laboratory models, edit biosafety licenses, and execute database backups.
                 </p>
             </div>
 
@@ -139,28 +137,9 @@ export default function ProfilePage() {
                         </h3>
 
                         <div className="space-y-4">
-                            <label className="space-y-1 block relative">
-                                <div className="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                                    <span>OpenRouter API Key</span>
-                                    <button
-                                        onClick={() => setShowKey(!showKey)}
-                                        className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold"
-                                    >
-                                        {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                        <span>{showKey ? "Hide" : "Show"}</span>
-                                    </button>
-                                </div>
-                                <Input
-                                    type={showKey ? "text" : "password"}
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="sk-or-v1-..."
-                                    className="font-mono text-xs"
-                                />
-                                <span className="text-[10px] text-slate-500 font-medium leading-relaxed block mt-1">
-                                    Required for AI protocol searches, PCR Oligo reviews, and active Chemical Safety compatibility checks. Saved locally to your browser.
-                                </span>
-                            </label>
+                            <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4 text-xs text-teal-400 leading-relaxed font-semibold">
+                                🔒 Platform credentials and OpenRouter access keys are securely configured at the server level. Manual key entry has been disabled to prevent exposure.
+                            </div>
 
                             <label className="space-y-1 block">
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Llama Model Target</span>

@@ -90,12 +90,28 @@ export async function callLlamaDirect(
 }
 
 // ============================================================================
-// Core Unified API Orchestrator (calling OpenRouter directly)
+// Core Unified API Orchestrator (calling secure proxy on client, and OpenRouter directly on server)
 // ============================================================================
 export async function callGemini(prompt: string): Promise<string> {
-    const openrouterKey = getStoredOpenRouterKey();
-    if (!openrouterKey) {
-        throw new Error("API_KEY_MISSING");
+    if (typeof window !== "undefined") {
+        // Client-side: proxy through secure backend API endpoint
+        const response = await fetch("/api/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt }),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to reach backend AI service.");
+        }
+        const data = await response.json();
+        return data.result || "";
+    } else {
+        // Server-side: call OpenRouter directly with hidden key
+        const openrouterKey = process.env.OPENROUTER_API_KEY || "";
+        if (!openrouterKey) {
+            throw new Error("Server-side OPENROUTER_API_KEY is not configured.");
+        }
+        return await callLlamaDirect(prompt, openrouterKey, getStoredLlamaModel());
     }
-    return await callLlamaDirect(prompt, openrouterKey, getStoredLlamaModel());
 }
