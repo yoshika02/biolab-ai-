@@ -15,6 +15,7 @@ function passwordStrength(password: string) {
 }
 
 export default function RegisterPage() {
+    const [prefix, setPrefix] = useState("Mr.");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -58,10 +59,11 @@ export default function RegisterPage() {
         const timeout = setTimeout(() => controller.abort(), 10000);
 
         try {
+            const fullName = `${prefix} ${name.trim()}`;
             const response = await fetch(api.auth.register, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, phone, department, institution, role, password }),
+                body: JSON.stringify({ name: fullName, email, phone, department, institution, role, password }),
                 signal: controller.signal,
             });
 
@@ -105,9 +107,21 @@ export default function RegisterPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="mt-10 space-y-5">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Name</label>
-                        <Input value={name} onChange={(event) => setName(event.target.value.replace(/[^A-Za-z ]/g, ""))} pattern="[A-Za-z ]+" required />
+                    <div className="grid grid-cols-[100px_1fr] gap-4">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-slate-700">Prefix</label>
+                            <select value={prefix} onChange={(event) => setPrefix(event.target.value)} required className="w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                <option value="Mr.">Mr.</option>
+                                <option value="Ms.">Ms.</option>
+                                <option value="Mrs.">Mrs.</option>
+                                <option value="Dr.">Dr.</option>
+                                <option value="Prof.">Prof.</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-slate-700">Name</label>
+                            <Input value={name} onChange={(event) => setName(event.target.value.replace(/[^A-Za-z ]/g, ""))} pattern="[A-Za-z ]+" required placeholder="First and last name" />
+                        </div>
                     </div>
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>

@@ -19,6 +19,8 @@ const titleMap: Record<string, string> = {
 
 interface User {
     name: string;
+    email: string;
+    role: string;
 }
 
 export function Topbar() {
@@ -48,13 +50,17 @@ export function Topbar() {
                 const res = await fetch(api.user);
                 const data = await res.json();
                 if (data.user) {
-                    setUser({ name: "Yoshika" });
+                    setUser({
+                        name: data.user.name || "Researcher",
+                        email: data.user.email || "",
+                        role: data.user.role ? (data.user.role.charAt(0).toUpperCase() + data.user.role.slice(1)) : "Principal Director"
+                    });
                 } else {
-                    setUser({ name: "Yoshika" });
+                    setUser({ name: "Yoshika", email: "yoshika@biogen-molecular.org", role: "Principal Director" });
                 }
             } catch (error) {
                 // Fallback for offline seed compliance
-                setUser({ name: "Yoshika" });
+                setUser({ name: "Yoshika", email: "yoshika@biogen-molecular.org", role: "Principal Director" });
             }
         };
         fetchUser();
@@ -145,8 +151,8 @@ export function Topbar() {
                             <div className="absolute right-0 mt-2.5 w-56 origin-top-right rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-150">
                                 <div className="px-3.5 py-2.5 border-b border-slate-900">
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-teal-400 font-mono">Signed In As</p>
-                                    <p className="text-xs font-bold text-slate-200 mt-0.5">Dr. Yoshika</p>
-                                    <p className="text-[9px] text-slate-500 mt-0.5 font-medium">Principal Director · BSL-2</p>
+                                    <p className="text-xs font-bold text-slate-200 mt-0.5">{user?.name || "Dr. Yoshika"}</p>
+                                    <p className="text-[9px] text-slate-500 mt-0.5 font-medium">{user?.role || "Principal Director"} · BSL-2</p>
                                 </div>
                                 <div className="p-1 space-y-0.5">
                                     <button

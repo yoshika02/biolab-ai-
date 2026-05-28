@@ -33,24 +33,73 @@ export default function ProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
-    // User bio information
-    const userProfile = {
-        name: "Dr. Yoshika",
-        role: "Principal Investigator & Laboratory Director",
-        institution: "BioGen Molecular Institute",
-        email: "yoshika@biogen-molecular.org",
-        location: "Gene Design Suite, Bay 4",
-        researchFocus: "CRISPR-Cas9 Specificity & Chemical Toxicity Mitigation Systems",
-        certificates: [
-            { name: "BSL-2 Lab Safety Director", authority: "Federal Biosafety Board", date: "Verified" },
-            { name: "GHS Chemical Compliance Auditor", authority: "OSHA Safety Authority", date: "Verified" },
-            { name: "CRISPR Genome Editing License", authority: "Biotech Control Council", date: "Verified" }
-        ]
-    };
+    // Dynamic profile state loaded from server session
+    const [profile, setProfile] = useState<{
+        name: string;
+        role: string;
+        institution: string;
+        email: string;
+        department: string;
+        researchFocus: string;
+        certificates: { name: string; authority: string; date: string }[];
+    }>({
+        name: "Loading...",
+        role: "Researcher",
+        institution: "BioLab Molecular Institute",
+        email: "",
+        department: "General Research",
+        researchFocus: "Molecular Assay and Gene Replication Studies",
+        certificates: []
+    });
 
     // Load active settings from helpers on mount
     useEffect(() => {
         setSelectedModel(getStoredLlamaModel());
+
+        // Fetch authenticated user data dynamically
+        fetch("/api/user")
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error();
+            })
+            .then(data => {
+                if (data?.user) {
+                    const u = data.user;
+                    const isYoshika = u.name?.toLowerCase().includes("yoshika");
+                    const defaultCerts = isYoshika ? [
+                        { name: "BSL-2 Lab Safety Director", authority: "Federal Biosafety Board", date: "Verified" },
+                        { name: "GHS Chemical Compliance Auditor", authority: "OSHA Safety Authority", date: "Verified" },
+                        { name: "CRISPR Genome Editing License", authority: "Biotech Control Council", date: "Verified" }
+                    ] : [
+                        { name: "General Laboratory Biosafety Level 1", authority: "Institutional Safety Council", date: "Verified" }
+                    ];
+
+                    const focus = isYoshika 
+                        ? "CRISPR-Cas9 Specificity & Chemical Toxicity Mitigation Systems"
+                        : `${u.role || "Research"} focus on ${u.department || "Molecular Biology"} investigations.`;
+
+                    setProfile({
+                        name: u.name || "Researcher",
+                        role: u.role ? (u.role.charAt(0).toUpperCase() + u.role.slice(1)) : "Principal Researcher",
+                        institution: u.institution || "BioGen Molecular Institute",
+                        email: u.email || "",
+                        department: u.department || "Molecular Engineering",
+                        researchFocus: focus,
+                        certificates: defaultCerts
+                    });
+                }
+            })
+            .catch(() => {
+                setProfile({
+                    name: "Guest Researcher",
+                    role: "Visitor",
+                    institution: "BioLab Institute",
+                    email: "",
+                    department: "Guest Access",
+                    researchFocus: "System Walkthrough & Verification",
+                    certificates: []
+                });
+            });
     }, []);
 
     // Save platform credentials
@@ -129,28 +178,24 @@ export default function ProfilePage() {
                 {/* Left Column: API settings, model configurator, DB tools */}
                 <div className="space-y-6">
                     
-                    {/* API keys credentials form */}
+                    {/* AI Assistant configuration panel */}
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 shadow-lg backdrop-blur-md">
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
                             <Key className="h-4.5 w-4.5 text-teal-400" />
-                            <span>AI Services & LLM Settings</span>
+                            <span>AI Assistant Settings</span>
                         </h3>
 
                         <div className="space-y-4">
-                            <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4 text-xs text-teal-400 leading-relaxed font-semibold">
-                                🔒 Platform credentials and OpenRouter access keys are securely configured at the server level. Manual key entry has been disabled to prevent exposure.
-                            </div>
-
                             <label className="space-y-1 block">
-                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Llama Model Target</span>
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Assistant Intelligence Level</span>
                                 <select
                                     value={selectedModel}
                                     onChange={(e) => setSelectedModel(e.target.value)}
                                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 outline-none focus:border-teal-500 font-semibold"
                                 >
-                                    <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (Default recommended)</option>
-                                    <option value="meta-llama/llama-3.1-405b-instruct">Llama 3.1 405B Instruct (Ultra Rigorous Molecular Analysis)</option>
-                                    <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B Instruct (Light & Fast responses)</option>
+                                    <option value="meta-llama/llama-3.3-70b-instruct">Standard Academic Focus (Default recommended)</option>
+                                    <option value="meta-llama/llama-3.1-405b-instruct">Deep Research Focus (Ultra Rigorous Molecular Analysis)</option>
+                                    <option value="meta-llama/llama-3.1-8b-instruct">High Speed Focus (Light & Fast responses)</option>
                                 </select>
                             </label>
                         </div>
@@ -158,7 +203,7 @@ export default function ProfilePage() {
                         {saveSuccess && (
                             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex gap-2">
                                 <CheckCircle2 className="h-4 w-4 shrink-0 animate-bounce" />
-                                <span>Platform configurations updated successfully!</span>
+                                <span>AI Assistant configurations updated successfully!</span>
                             </div>
                         )}
 
@@ -170,12 +215,12 @@ export default function ProfilePage() {
                             {isSaving ? (
                                 <>
                                     <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                    <span>Syncing platform credentials...</span>
+                                    <span>Syncing assistant configurations...</span>
                                 </>
                             ) : (
                                 <>
                                     <Save className="h-3.5 w-3.5" />
-                                    <span>Save Platform Credentials</span>
+                                    <span>Save AI Assistant Settings</span>
                                 </>
                             )}
                         </button>
@@ -220,23 +265,23 @@ export default function ProfilePage() {
                             <div className="h-20 w-20 rounded-full border border-teal-500/40 bg-teal-500/10 flex items-center justify-center text-teal-400 shadow-md">
                                 <User className="h-10 w-10" />
                             </div>
-                            <h2 className="mt-3 text-lg font-bold text-white">{userProfile.name}</h2>
-                            <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mt-0.5">{userProfile.role}</p>
-                            <p className="text-[10px] font-mono text-slate-500 mt-1">{userProfile.institution}</p>
+                            <h2 className="mt-3 text-lg font-bold text-white">{profile.name}</h2>
+                            <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mt-0.5">{profile.role}</p>
+                            <p className="text-[10px] font-mono text-slate-500 mt-1">{profile.institution}</p>
                         </div>
 
                         <div className="space-y-3.5 text-[11px] font-medium text-slate-300">
                             <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-slate-500 shrink-0" />
-                                <span className="text-slate-400">{userProfile.email}</span>
+                                <span className="text-slate-400">{profile.email}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-slate-500 shrink-0" />
-                                <span className="text-slate-400">{userProfile.location}</span>
+                                <span className="text-slate-400">{profile.department}</span>
                             </div>
                             <div>
                                 <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Primary Core Research</span>
-                                <p className="text-slate-300 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">{userProfile.researchFocus}</p>
+                                <p className="text-slate-300 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">{profile.researchFocus}</p>
                             </div>
                         </div>
                     </div>
@@ -249,7 +294,7 @@ export default function ProfilePage() {
                         </h3>
 
                         <div className="space-y-2.5">
-                            {userProfile.certificates.map(cert => (
+                            {profile.certificates.map(cert => (
                                 <div key={cert.name} className="flex items-center justify-between rounded-xl border border-slate-900 bg-slate-950 p-3 hover:border-slate-800 transition">
                                     <div>
                                         <div className="text-xs font-bold text-slate-200">{cert.name}</div>

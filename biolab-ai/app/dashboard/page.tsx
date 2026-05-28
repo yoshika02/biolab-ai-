@@ -89,88 +89,106 @@ const storageKeys = [
 
 export default function DashboardHome() {
     const [counts, setCounts] = useState<Record<string, number>>({});
+    const [userName, setUserName] = useState("Researcher");
     const now = new Date();
 
     useEffect(() => {
-        // 1. Initializing seed data for our laboratory if empty (Hypothetical, clean, realistic entries)
-        if (typeof window !== "undefined") {
-            const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed");
-            if (!hasSeeded) {
-                // Seeding Inventory
-                const mockInventory = [
-                    { id: "inv-1", item: "Ethanol (99% pure)", category: "Solvents", quantity: 2.5, unit: "L", location: "Cabinet B (Flammables)" },
-                    { id: "inv-2", item: "Nitric Acid (Concentrated)", category: "Acids", quantity: 500, unit: "mL", location: "Cabinet A (Acids)" },
-                    { id: "inv-3", item: "Tris-HCl Buffer (pH 8.0)", category: "Buffers", quantity: 1, unit: "L", location: "Shelf C" },
-                    { id: "inv-4", item: "DAPI Nucleic Acid Stain", category: "Stains", quantity: 10, unit: "mg", location: "Freezer Box F" }
-                ];
-                window.localStorage.setItem("biolab.inventory_premium", JSON.stringify(mockInventory));
+        // Fetch dynamic logged-in user name
+        fetch("/api/user")
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error();
+            })
+            .then(data => {
+                if (data?.user?.name) {
+                    setUserName(data.user.name);
 
-                // Seeding Experiments
-                const mockExperiments = [
-                    {
-                        id: "exp-1",
-                        name: "Growth curve study - Delta-12",
-                        stage: "Running",
-                        createdAt: new Date(Date.now() - 4 * 24 * 3600000).toISOString(),
-                        logs: [
-                            { date: "Day 1", od: 0.45, ph: 7.2, yield: 40, notes: "Inoculation successful. Normal growth rate." },
-                            { date: "Day 2", od: 0.92, ph: 5.1, yield: 65, notes: "Sudden sharp pH crash to 5.1. Sour odor observed in bacterial culture." }
-                        ]
-                    },
-                    {
-                        id: "exp-2",
-                        name: "BRCA1 CRISPR Knockout Verification",
-                        stage: "Analysis",
-                        createdAt: new Date(Date.now() - 8 * 24 * 3600000).toISOString(),
-                        logs: [
-                            { date: "Day 1", od: 0.35, ph: 7.4, yield: 84, notes: "GEL electrophoresis verification. Amplification detected at 250bp target." }
-                        ]
-                    },
-                    {
-                        id: "exp-3",
-                        name: "GFP Expressing E. coli Culture",
-                        stage: "Completed",
-                        createdAt: new Date(Date.now() - 15 * 24 * 3600000).toISOString(),
-                        logs: [
-                            { date: "Day 1", od: 0.88, ph: 7.0, yield: 92, notes: "Brilliant green fluorescence under UV light. High validation rate." }
-                        ]
+                    // 1. Initializing seed data for our laboratory ONLY for Yoshika account!
+                    if (data.user.name.toLowerCase().includes("yoshika") && typeof window !== "undefined") {
+                        const hasSeeded = window.localStorage.getItem("biolab.seeding_premium_completed");
+                        if (!hasSeeded) {
+                            // Seeding Inventory
+                            const mockInventory = [
+                                { id: "inv-1", item: "Ethanol (99% pure)", category: "Solvents", quantity: 2.5, unit: "L", location: "Cabinet B (Flammables)" },
+                                { id: "inv-2", item: "Nitric Acid (Concentrated)", category: "Acids", quantity: 500, unit: "mL", location: "Cabinet A (Acids)" },
+                                { id: "inv-3", item: "Tris-HCl Buffer (pH 8.0)", category: "Buffers", quantity: 1, unit: "L", location: "Shelf C" },
+                                { id: "inv-4", item: "DAPI Nucleic Acid Stain", category: "Stains", quantity: 10, unit: "mg", location: "Freezer Box F" }
+                            ];
+                            window.localStorage.setItem("biolab.inventory_premium", JSON.stringify(mockInventory));
+
+                            // Seeding Experiments
+                            const mockExperiments = [
+                                {
+                                    id: "exp-1",
+                                    name: "Growth curve study - Delta-12",
+                                    stage: "Running",
+                                    createdAt: new Date(Date.now() - 4 * 24 * 3600000).toISOString(),
+                                    logs: [
+                                        { date: "Day 1", od: 0.45, ph: 7.2, yield: 40, notes: "Inoculation successful. Normal growth rate." },
+                                        { date: "Day 2", od: 0.92, ph: 5.1, yield: 65, notes: "Sudden sharp pH crash to 5.1. Sour odor observed in bacterial culture." }
+                                    ]
+                                },
+                                {
+                                    id: "exp-2",
+                                    name: "BRCA1 CRISPR Knockout Verification",
+                                    stage: "Analysis",
+                                    createdAt: new Date(Date.now() - 8 * 24 * 3600000).toISOString(),
+                                    logs: [
+                                        { date: "Day 1", od: 0.35, ph: 7.4, yield: 84, notes: "GEL electrophoresis verification. Amplification detected at 250bp target." }
+                                    ]
+                                },
+                                {
+                                    id: "exp-3",
+                                    name: "GFP Expressing E. coli Culture",
+                                    stage: "Completed",
+                                    createdAt: new Date(Date.now() - 15 * 24 * 3600000).toISOString(),
+                                    logs: [
+                                        { date: "Day 1", od: 0.88, ph: 7.0, yield: 92, notes: "Brilliant green fluorescence under UV light. High validation rate." }
+                                    ]
+                                }
+                            ];
+                            window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(mockExperiments));
+
+                            // Seeding Primers
+                            const mockPrimers = [
+                                {
+                                    id: "prim-seed-1",
+                                    geneName: "GFP-Reporter",
+                                    geneSequence: "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAG...",
+                                    forwardPrimer: "ATGGTGAGCAAGGGCG",
+                                    reversePrimer: "TTACTTGTACAGCTCG",
+                                    tmForward: 58.4,
+                                    tmReverse: 57.9,
+                                    gcForward: 53.2,
+                                    gcReverse: 51.5,
+                                    ampliconSize: 240,
+                                    qualityScore: 92,
+                                    offTargetHits: 0,
+                                    createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString()
+                                }
+                            ];
+                            window.localStorage.setItem("biolab.primers_premium", JSON.stringify(mockPrimers));
+
+                            // Seeding Activity Logs
+                            const mockLogs = [
+                                { id: "act-1", action: "logged daily measurements for Delta-12", module: "Experiment", createdAt: new Date(Date.now() - 1 * 3600000).toISOString() },
+                                { id: "act-2", action: "created new CRISPR knockout target", module: "Experiment", createdAt: new Date(Date.now() - 4 * 3600000).toISOString() },
+                                { id: "act-3", action: "performed SDS safety review for Nitric Acid", module: "Safety", createdAt: new Date(Date.now() - 12 * 3600000).toISOString() },
+                                { id: "act-4", action: "designed PCR primers for GFP-Reporter", module: "Primer", createdAt: new Date(Date.now() - 48 * 3600000).toISOString() }
+                            ];
+                            window.localStorage.setItem("biolab.activity_logs", JSON.stringify(mockLogs));
+
+                            // Finalize seed completion
+                            window.localStorage.setItem("biolab.seeding_premium_completed", "true");
+                        }
                     }
-                ];
-                window.localStorage.setItem("biolab.experiments_premium", JSON.stringify(mockExperiments));
-
-                // Seeding Primers
-                const mockPrimers = [
-                    {
-                        id: "prim-seed-1",
-                        geneName: "GFP-Reporter",
-                        geneSequence: "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAG...",
-                        forwardPrimer: "ATGGTGAGCAAGGGCG",
-                        reversePrimer: "TTACTTGTACAGCTCG",
-                        tmForward: 58.4,
-                        tmReverse: 57.9,
-                        gcForward: 53.2,
-                        gcReverse: 51.5,
-                        ampliconSize: 240,
-                        qualityScore: 92,
-                        offTargetHits: 0,
-                        createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString()
-                    }
-                ];
-                window.localStorage.setItem("biolab.primers_premium", JSON.stringify(mockPrimers));
-
-                // Seeding Activity Logs
-                const mockLogs = [
-                    { id: "act-1", action: "logged daily measurements for Delta-12", module: "Experiment", createdAt: new Date(Date.now() - 1 * 3600000).toISOString() },
-                    { id: "act-2", action: "created new CRISPR knockout target", module: "Experiment", createdAt: new Date(Date.now() - 4 * 3600000).toISOString() },
-                    { id: "act-3", action: "performed SDS safety review for Nitric Acid", module: "Safety", createdAt: new Date(Date.now() - 12 * 3600000).toISOString() },
-                    { id: "act-4", action: "designed PCR primers for GFP-Reporter", module: "Primer", createdAt: new Date(Date.now() - 48 * 3600000).toISOString() }
-                ];
-                window.localStorage.setItem("biolab.activity_logs", JSON.stringify(mockLogs));
-
-                // Finalize seed completion
-                window.localStorage.setItem("biolab.seeding_premium_completed", "true");
-            }
-        }
+                    
+                    // Trigger dynamic local storage count reader
+                    updateCounts();
+                }
+            })
+            .catch(() => {});
+    }, []);
 
         // Live dynamic local storage count reader
         const updateCounts = () => {
@@ -216,7 +234,7 @@ export default function DashboardHome() {
                         <p className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-1">
                             {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </p>
-                        <h2 className="text-3xl font-bold text-white">Welcome Back, Yoshika 👋</h2>
+                        <h2 className="text-3xl font-bold text-white">Welcome Back, {userName} 👋</h2>
                         <p className="mt-2 text-slate-300 text-sm">
                             Molecular command console is online. <span className="font-semibold text-teal-300">{totalExperiments} experiments</span> are currently logged, with <span className="font-semibold text-teal-300">{totalReagents} chemical materials</span> cataloged.
                         </p>

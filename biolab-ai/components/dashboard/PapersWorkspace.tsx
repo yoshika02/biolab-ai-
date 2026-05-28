@@ -2,13 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Search, Upload, Link as LinkIcon, FileText, Loader2, Sparkles, X, CheckCircle2, Key } from 'lucide-react';
-import {
-    callGemini,
-    getStoredOpenRouterKey,
-    setStoredOpenRouterKey,
-    getStoredLlamaModel,
-    setStoredLlamaModel
-} from '@/lib/gemini';
+import { callGemini } from '@/lib/gemini';
 
 function SummaryBox({ content, loading }: { content: string; loading: boolean }) {
     if (loading) return (
@@ -49,31 +43,7 @@ interface SearchResult {
 export function PapersWorkspace() {
     const [tab, setTab] = useState<'search' | 'upload'>('search');
 
-    // OpenRouter Settings State
-    const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
-    const [inputOpenRouterKey, setInputOpenRouterKey] = useState("");
-    const [llamaModel, setLlamaModel] = useState("meta-llama/llama-3.3-70b-instruct");
-    const [showKeySetup, setShowKeySetup] = useState(false);
 
-    useEffect(() => {
-        const openrouterKey = getStoredOpenRouterKey();
-        setHasOpenRouterKey(!!openrouterKey);
-        setInputOpenRouterKey(openrouterKey);
-        setLlamaModel(getStoredLlamaModel());
-    }, []);
-
-    function handleSaveEngineSettings(e: React.FormEvent) {
-        e.preventDefault();
-        
-        // Save OpenRouter key
-        setStoredOpenRouterKey(inputOpenRouterKey);
-        setHasOpenRouterKey(!!inputOpenRouterKey.trim());
-
-        // Save model settings
-        setStoredLlamaModel(llamaModel);
-
-        setShowKeySetup(false);
-    }
 
     // Search state
     const [query, setQuery] = useState('');
@@ -121,12 +91,7 @@ Make them highly relevant to the search query. Use realistic titles, authors, an
             const parsed: SearchResult[] = JSON.parse(jsonMatch[0]);
             setResults(parsed);
         } catch (err) {
-            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
-                setShowKeySetup(true);
-                setSearchError(`Please configure your ${primaryProvider === 'gemini' ? 'Gemini' : 'OpenRouter'} API Key first.`);
-            } else {
-                setSearchError(err instanceof Error ? err.message : 'Search failed.');
-            }
+            setSearchError(err instanceof Error ? err.message : 'Search failed.');
         } finally {
             setIsSearching(false);
         }
@@ -155,12 +120,7 @@ Be specific, insightful and use clear language.`;
             const result = await callGemini(prompt);
             setSummary(result);
         } catch (err) {
-            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
-                setShowKeySetup(true);
-                setSummary(`Please configure your ${primaryProvider === 'gemini' ? 'Gemini' : 'OpenRouter'} API Key first.`);
-            } else {
-                setSummary('Failed to generate summary. Please check your AI configuration.');
-            }
+            setSummary('Failed to generate summary. Please check your AI configuration.');
         } finally {
             setIsSummarizing(false);
         }
@@ -220,12 +180,7 @@ Be detailed, accurate, and helpful for a lab researcher.`;
             const result = await callGemini(prompt);
             setUploadSummary(result);
         } catch (err) {
-            if (err instanceof Error && err.message === 'API_KEY_MISSING') {
-                setShowKeySetup(true);
-                setUploadError("Please configure your OpenRouter API Key first.");
-            } else {
-                setUploadError(err instanceof Error ? err.message : 'Summarization failed.');
-            }
+            setUploadError(err instanceof Error ? err.message : 'Summarization failed.');
         } finally {
             setIsUploadSummarizing(false);
         }
@@ -240,101 +195,7 @@ Be detailed, accurate, and helpful for a lab researcher.`;
                     <h1 className="mt-1 text-3xl font-bold text-white">Paper Summarizer</h1>
                     <p className="mt-1 text-slate-400 text-sm">Search across platforms or upload a paper for deep AI analysis.</p>
                 </div>
-                <button
-                    onClick={() => setShowKeySetup(!showKeySetup)}
-                    className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold border transition ${
-                        hasOpenRouterKey
-                            ? 'border-teal-500/30 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20' 
-                            : 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
-                    }`}
-                >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>
-                        OpenRouter Llama Configured
-                    </span>
-                </button>
             </div>
-
-            {/* API Key / Engine Settings Setup Panel */}
-            {(!hasOpenRouterKey || showKeySetup) && (
-                <div className="rounded-3xl border border-teal-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/20 p-6 space-y-6 shadow-2xl transition duration-300">
-                    {/* Panel Header */}
-                    <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-                        <div className="flex gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-400">
-                                <Sparkles className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-100">AI Model Settings</h3>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Configure your OpenRouter API key and select a Llama model.
-                                </p>
-                            </div>
-                        </div>
-                        <button 
-                            type="button" 
-                            onClick={() => setShowKeySetup(false)} 
-                            className="rounded-full p-1 text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSaveEngineSettings} className="space-y-5">
-                        {/* 1. API Key Input */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">OpenRouter API Key (Llama)</label>
-                                <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-[10px] text-teal-400 hover:underline">Get Key</a>
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type="password"
-                                    value={inputOpenRouterKey}
-                                    onChange={(e) => setInputOpenRouterKey(e.target.value)}
-                                    placeholder="sk-or-... (Saved in Local Storage)"
-                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-teal-500 focus:outline-none"
-                                    required
-                                />
-                                {hasOpenRouterKey && (
-                                    <span className="absolute right-3 top-2.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Configured</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* 2. Llama Model selection */}
-                        <div className="space-y-2 pt-1">
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Llama Model Engine</label>
-                            <select
-                                value={llamaModel}
-                                onChange={(e) => setLlamaModel(e.target.value)}
-                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 outline-none focus:border-teal-500"
-                            >
-                                <option value="meta-llama/llama-3.3-70b-instruct">Meta Llama 3.3 70B Instruct (Recommended)</option>
-                                <option value="meta-llama/llama-3.1-8b-instruct:free">Meta Llama 3.1 8B Instruct (Free)</option>
-                                <option value="meta-llama/llama-3-8b-instruct:free">Meta Llama 3 8B Instruct (Free)</option>
-                            </select>
-                        </div>
-
-                        {/* Form Action Buttons */}
-                        <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-                            <button 
-                                type="button" 
-                                onClick={() => setShowKeySetup(false)} 
-                                className="rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-5 py-2.5 text-xs font-bold text-slate-300 transition"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="submit" 
-                                className="rounded-xl bg-teal-500 hover:bg-teal-600 px-6 py-2.5 text-xs font-bold text-slate-950 transition shadow-lg shadow-teal-500/20"
-                            >
-                                Apply Settings
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
 
             {/* Tab Toggle */}
             <div className="flex gap-1 rounded-2xl bg-slate-900 border border-slate-800 p-1 w-fit">
