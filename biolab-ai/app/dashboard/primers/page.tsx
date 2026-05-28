@@ -586,11 +586,11 @@ Format your response beautifully with clean markdown, crisp headings, and short 
                                                 {/* Primer sequence readout */}
                                                 <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
                                                     <div className="space-y-0.5">
-                                                        <span className="text-slate-500 font-bold block">Fwd Oligo (5'->3')</span>
+                                                        <span className="text-slate-500 font-bold block">Fwd Oligo (5&apos;-&gt;3&apos;)</span>
                                                         <code className="text-emerald-400 font-mono font-semibold break-all bg-slate-900/60 px-1 py-0.5 rounded">{candidate.forwardSeq}</code>
                                                     </div>
                                                     <div className="space-y-0.5">
-                                                        <span className="text-slate-500 font-bold block">Rev Oligo (5'->3')</span>
+                                                        <span className="text-slate-500 font-bold block">Rev Oligo (5&apos;-&gt;3&apos;)</span>
                                                         <code className="text-amber-400 font-mono font-semibold break-all bg-slate-900/60 px-1 py-0.5 rounded">{candidate.reverseSeq}</code>
                                                     </div>
                                                 </div>
