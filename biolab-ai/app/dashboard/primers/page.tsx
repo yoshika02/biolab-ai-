@@ -22,7 +22,7 @@ import {
     ArrowDownToLine
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { callGemini, getStoredOpenRouterKey } from "@/lib/gemini";
+import { callGemini } from "@/lib/gemini";
 
 interface PrimerPair {
     id: string;
@@ -129,6 +129,18 @@ export default function PrimersPage() {
             }
         }
     }, []);
+
+    // Clear stale results whenever the input sequence or gene name changes
+    // This prevents old primer pairs from showing after the user types a new sequence
+    useEffect(() => {
+        if (candidates.length > 0) {
+            setCandidates([]);
+            setSelectedCandidate(null);
+            setAiExplanationText("");
+            setAiError("");
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sequence, geneName]);
 
     // Save helpers
     const savePrimerDesigns = (nextDesigns: SavedPrimerDesign[]) => {
@@ -297,11 +309,7 @@ Format your response beautifully with clean markdown, crisp headings, and short 
             setSelectedCandidate(prev => prev && prev.id === candidate.id ? { ...prev, aiExplanation: res } : prev);
         } catch (err) {
             console.error("AI Primer analysis failed:", err);
-            if (err instanceof Error && err.message === "API_KEY_MISSING") {
-                setAiError("API Key missing! Please configure your OpenRouter key in the Settings (top-right corner).");
-            } else {
-                setAiError(err instanceof Error ? err.message : "Failed to run safety audit.");
-            }
+            setAiError(err instanceof Error ? err.message : "Failed to run AI primer analysis.");
         } finally {
             setIsGeneratingAI(false);
         }
